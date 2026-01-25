@@ -1,0 +1,9 @@
+[project]
+name = "frank-score-app"
+version = "1.0.0"
+requires-python = ">=3.10,<3.11"
+description = "FrankScore Psychometric Assessment App"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+
