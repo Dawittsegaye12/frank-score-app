@@ -81,11 +81,17 @@ def load_question_banks() -> None:
 
 @app.on_event("startup")
 def _startup() -> None:
-    db.init_db()
-    load_question_banks()
-    # Models loaded lazily on first use to speed up cold starts
-    # scoring.load_xgb_model()  # Load XGBoost model at startup
-    # scoring.load_rf_model()  # Load Random Forest model at startup
+    try:
+        db.init_db()
+        load_question_banks()
+        # Models loaded lazily on first use to speed up cold starts
+        # scoring.load_xgb_model()  # Load XGBoost model at startup
+        # scoring.load_rf_model()  # Load Random Forest model at startup
+    except Exception as e:
+        # Log error but don't crash - allow app to start
+        # In serverless, some initialization might fail but app should still work
+        import logging
+        logging.error(f"Startup error (non-fatal): {e}")
 
 
 def now_ms() -> int:
