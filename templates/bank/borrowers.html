@@ -1,0 +1,131 @@
+{% extends "bank/base.html" %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Borrower Applications</h1>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <input type="text" id="searchInput" placeholder="Search ID..." class="border rounded px-3 py-2">
+        <select id="statusFilter" class="border rounded px-3 py-2">
+            <option value="">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="in_progress">In Progress</option>
+        </select>
+        <button onclick="loadBorrowers()"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Filter</button>
+        <button onclick="exportCSV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export
+            CSV</button>
+    </div>
+</div>
+
+<div class="bg-white shadow rounded-lg overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application
+                    ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Band
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+            <!-- Populated by JS -->
+        </tbody>
+    </table>
+    <div class="p-4 flex justify-between items-center border-t">
+        <button id="prevBtn" onclick="changePage(-1)" class="text-blue-600 disabled:text-gray-400">Previous</button>
+        <span id="pageInfo" class="text-sm text-gray-600">Page 1</span>
+        <button id="nextBtn" onclick="changePage(1)" class="text-blue-600 disabled:text-gray-400">Next</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 20;
+
+    async function loadBorrowers() {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+
+        const params = new URLSearchParams({
+            page: currentPage,
+            limit: limit
+        });
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+
+        const res = await fetch(`/bank/api/borrowers?${params.toString()}`);
+        const data = await res.json();
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        data.items.forEach(item => {
+            const score = item.score ? Math.round(item.score * 100) : '-'; // Assuming PD is 0-1, convert to 0-100? Or if it's PD, lower is better. Let's assume PD for now.
+            // Wait, "score" in credit usually means higher is better.
+            // But pd_final_hat is "Probability of Default". 
+            // Bank dashboard usually wants a Score (e.g. 300-850) or a Risk Band.
+            // Let's display PD as "Risk Score" (1 - PD) * 100 ? Or just display PD %.
+            // Let's stick to displaying PD % for transparency for now, labeled as "Est. Default Risk".
+
+            const pdPercent = item.score !== null ? (item.score * 100).toFixed(1) + '%' : '-';
+
+            // Risk band logic (simple)
+            let riskBand = '-';
+            let riskColor = 'gray';
+            if (item.score !== null) {
+                if (item.score < 0.05) { riskBand = 'Low'; riskColor = 'green'; }
+                else if (item.score < 0.15) { riskBand = 'Medium'; riskColor = 'yellow'; }
+                else { riskBand = 'High'; riskColor = 'red'; }
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.assessment_id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.created_at}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        ${item.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${pdPercent}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span class="text-${riskColor}-600 font-bold">${riskBand}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <a href="/bank/borrowers/${item.assessment_id}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('pageInfo').innerText = `Page ${data.page}`;
+        document.getElementById('prevBtn').disabled = data.page <= 1;
+        document.getElementById('nextBtn').disabled = data.items.length < limit; // Simple check
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        loadBorrowers();
+    }
+
+    function exportCSV() {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        window.location.href = `/bank/api/borrowers/export.csv?${params.toString()}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadBorrowers);
+</script>
+{% endblock %}

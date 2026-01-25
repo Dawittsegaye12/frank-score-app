@@ -1,0 +1,14 @@
+[
+  { "item_id": "Q1", "text": "I plan ahead before making important decisions." },
+  { "item_id": "Q2", "text": "I often act on impulse without thinking through the consequences." },
+  { "item_id": "Q3", "text": "I prefer safer options even if the reward is smaller." },
+  { "item_id": "Q4", "text": "I consistently stick to a budget or spending plan." },
+  { "item_id": "Q5", "text": "I am honest even when it would be easy to bend the rules." },
+  { "item_id": "Q6", "text": "I stay calm and focused under pressure." },
+  { "item_id": "Q7", "text": "I expect things to work out in the end." },
+  { "item_id": "Q8", "text": "I pay close attention to details in forms and instructions." },
+  { "item_id": "Q9", "text": "I can wait for a better outcome rather than taking the quick option." },
+  { "item_id": "Q10", "text": "I adapt quickly when plans change." }
+]
+
+

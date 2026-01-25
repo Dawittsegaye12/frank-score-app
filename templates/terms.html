@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Consent</h1>
+  <p class="muted">
+    This assessment uses your financial profile data and psychometric responses to compute
+    trait scores and a probability of default (PD). We also collect basic interaction telemetry
+    (timestamps, scrolling summaries, idle periods, and navigation signals) to enhance the assessment.
+  </p>
+
+  <label class="check">
+    <input id="consent_financial" type="checkbox" checked />
+    <span>I consent to use my financial profile data for PD calculation.</span>
+  </label>
+
+  <div class="row">
+    <button id="startBtn" class="btn primary">Start assessment</button>
+    <div id="err" class="error" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+  // Terms page tracking
+  const termsStartTime = Date.now();
+  let termsMaxScrollDepth = 0;
+
+  function updateTermsScrollDepth() {
+    const doc = document.documentElement;
+    const scrollTop = window.scrollY || doc.scrollTop || 0;
+    const vh = window.innerHeight || 1;
+    const full = Math.max(doc.scrollHeight || 1, 1);
+    const depth = Math.min(1, (scrollTop + vh) / full);
+    if (depth > termsMaxScrollDepth) termsMaxScrollDepth = depth;
+  }
+
+  window.addEventListener("scroll", updateTermsScrollDepth, { passive: true });
+  updateTermsScrollDepth();
+
+  const startBtn = document.getElementById("startBtn");
+  const err = document.getElementById("err");
+
+  function setErr(msg) {
+    err.textContent = msg || "";
+  }
+
+  startBtn.addEventListener("click", async () => {
+    setErr("");
+    const consentFin = document.getElementById("consent_financial").checked;
+    
+    // Get user_id from sessionStorage or URL parameter
+    const user_id = sessionStorage.getItem("fs_user_id") || new URLSearchParams(window.location.search).get("user_id");
+    // Send user_id as string (API expects Optional[str])
+    const requestBody = { user_id: user_id || null, consent_financial: consentFin };
+
+    startBtn.disabled = true;
+    startBtn.textContent = "Starting...";
+    try {
+      const res = await fetch("/api/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || "Failed to start");
+      }
+      const data = await res.json();
+
+      // Store session data
+      sessionStorage.setItem(`fs_session_${data.assessment_id}`, data.session_id);
+      sessionStorage.setItem(`fs_consent_fin_${data.assessment_id}`, consentFin ? "1" : "0");
+
+      // Store terms page tracking data for MetadataTracker
+      const termsScreenTime = (Date.now() - termsStartTime) / 1000;
+      sessionStorage.setItem(`fs_terms_time_${data.assessment_id}`, String(termsScreenTime));
+      sessionStorage.setItem(`fs_terms_scroll_${data.assessment_id}`, String(termsMaxScrollDepth));
+
+      window.location.href = `/questions?assessment_id=${encodeURIComponent(data.assessment_id)}`;
+    } catch (e) {
+      setErr(String(e && e.message ? e.message : e));
+    } finally {
+      startBtn.disabled = false;
+      startBtn.textContent = "Start assessment";
+    }
+  });
+</script>
+{% endblock %}

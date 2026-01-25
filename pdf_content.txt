@@ -1,0 +1,405 @@
+=== PAGE 1 ===
+FrankScore Psychometric Trait Scoring
+End-to-End Example with Five Borrowers
+Traits, Behavioural Metadata, and Content (Questions and Scenarios)
+1 Introduction
+This report illustrates how FrankScore combines three core elements:
+•Psychometric traits: a set of fifteen behavioural and attitudinal dimensions relevant for
+creditworthiness.
+•Behavioural metadata: forty-seven digital interaction features recorded while a borrower
+completes a psychometric assessment.
+•Content: questionnaire items and short scenarios that ask about real decisions, plans, and
+attitudes.
+For five fictional borrowers, we assume both content responses and metadata are available,
+and show how these inputs can be used to derive final trait scores on a normalised scale from zero
+to one. The goal is not to present final production weights, but to provide a clear, explainable
+blueprint that can be calibrated with real data.
+2 Conceptual Framework
+FrankScore uses a three-body model:
+1.Traitsare the latent psychological dimensions we want to estimate, such as Conscientious-
+ness or Honesty.
+2.Contentconsists of questions and mini scenarios that ask borrowers about their behaviour,
+preferences, and attitudes.
+3.Behavioural metadataconsists of how borrowers interact with the assessment itself: how
+fast they respond, whether they skip questions, how they scroll, and so on.
+For each trait:
+•Content responses are converted into acontent-based trait scorein the range[0,1].
+•Metadata features are transformed into abehaviour-based trait scorein the range[0,1].
+•These two components are combined into a final trait value:
+Traitfinal=α·Trait behaviour + (1−α)·Trait content,
+whereαis a weight that can later be calibrated with real loan performance data.
+1
+
+=== PAGE 2 ===
+3 Psychometric Trait Set
+FrankScore currently focuses on the following fifteen traits. Trait names are written in full
+without abbreviations.
+Trait Short description
+Conscientiousness Carefulness, organisation, reliability, and tendency to
+complete tasks and follow rules.
+Impulsivity Tendency to act quickly without thinking, preferring short
+term rewards over better long term outcomes.
+Confidence in Financial
+ManagementBelief in one’s ability to understand, manage, and repay
+financial obligations.
+Planning Horizon How far into the future the person normally plans when
+making business and money decisions.
+Self-Control Ability to resist temptation, delay gratification, and stay
+focused on commitments.
+Locus of Control Belief that outcomes come mainly from one’s own actions
+rather than from luck or external forces.
+Honesty Tendency to tell the truth and avoid misrepresenting
+information, even when there is a short term benefit in doing
+so.
+Integrity and Rule
+FollowingRespect for rules, contracts, and agreements, even when
+enforcement is weak or absent.
+Sense of Obligation to
+RepayMoral commitment to repay loans and honour agreements,
+feeling responsible for staying current.
+Grit and Perseverance Ability to continue working and solving problems when
+business conditions are difficult.
+Present Bias and Time
+PreferenceStrength of preference for immediate rewards compared to
+larger future rewards.
+Risk Attitude Comfort with taking financial risks versus preferring very safe
+options.
+Financial Decision Making
+QualityConsistency and accuracy in comparing financial options such
+as loans and repayment plans.
+Spending versus Saving
+OrientationTendency to spend income quickly versus building savings and
+buffers.
+Commitment and Follow
+ThroughLikelihood of completing tasks and fulfilling obligations once
+they are started.
+4 Behavioural Metadata Feature Set
+During the digital assessment, the application records a set of behavioural signals. For this
+design we consider the following forty-seven metadata variables. In practice they are normalised
+to the[0,1]range before being used in trait calculations.
+2
+
+=== PAGE 3 ===
+Metadata name Interpretation (informal)
+completion_status Whether the assessment was fully completed.
+completion_time_sec Total time from first question to completion.
+sessions_count Number of sessions used to complete the assessment.
+partial_attempts_count Number of starts that did not reach completion.
+return_after_disconnection Whether the borrower returned after exiting or
+disconnection.
+abandonment_flag Flag indicating that the assessment was never
+finished.
+off_hours_submission Whether completion occurred at unusual hours.
+device_type Encoded type of device used (for example, mobile,
+web).
+os_type Encoded operating system type.
+avg_response_time_sec Average time taken to answer questions.
+response_time_std_sec Variability in response times.
+median_response_time_sec Median response time per question.
+min_response_time_sec Shortest response time observed.
+max_response_time_sec Longest response time observed.
+idle_time_total_sec Total time without interactions.
+idle_time_ratio Fraction of total session time spent idle.
+rapid_click_events Number of extremely fast clicks.
+hesitation_time_avg Average hesitation before the first action on items.
+hesitation_time_financial_items Average hesitation on financial items.
+hesitation_time_planning_items Average hesitation on planning items.
+skip_rate Fraction of items skipped or answered with “I do not
+know”.
+skip_rate_financial_items Fraction of skipped financial items.
+skip_rate_integrity_items Fraction of skipped integrity and honesty items.
+answer_change_rate Fraction of items where answers were changed.
+answer_change_rate_financial_itemsAnswer change rate on financial items.
+answer_change_rate_planning_itemsAnswer change rate on planning items.
+answer_change_rate_integrity_itemsAnswer change rate on integrity items.
+extreme_option_rate Fraction of times the most extreme option was
+selected.
+inconsistency_score Rate of logically inconsistent answers across item
+pairs.
+social_desirability_score Degree to which answers look “too perfect” or highly
+desirable.
+scroll_events_count Number of scroll events.
+scroll_speed_avg Average scroll speed.
+scroll_depth_avg Average fraction of content scrolled.
+scroll_zigzag_score Degree of up-and-down scrolling.
+back_navigation_count Number of times previous questions were revisited.
+page_switch_rate Rate of switching between pages or sections.
+(continued on next page)
+3
+
+=== PAGE 4 ===
+Metadata name Interpretation (informal)
+correct_financial_decisions Accuracy on financial decision tasks.
+time_spent_financial_scenarios Time spent on financial scenarios.
+time_spent_on_planning_items Time spent on planning items.
+pattern_now_vs_later_score Fraction of choices favouring “now” over “later” in
+time preference tasks.
+pattern_risky_choices_score Fraction of risky choices in risk tasks.
+retries_on_hard_items Number of retries on hard items.
+hard_items_completed_rate Fraction of hard items completed.
+instruction_read_time Time spent on instruction screens.
+terms_screen_time Time spent on the terms and consent screen.
+terms_scroll_depth Fraction of the terms text that was scrolled through.
+instruction_compliance_flags Count of explicit instruction violations in the user
+flow.
+5 Content Design: Question and Scenario Types
+All questions and scenarios are maintained in an item bank. Each item has an identifier, a main
+trait tag, an item type (such as Likert, time preference, or scenario), and a scoring rule that
+maps each possible answer to a score between zero and one.
+The main item types used are:
+•Likert statementswith five options from “strongly disagree” to “strongly agree”.
+•Time preference choices, such as “1,000 birr today versus 1,300 birr in one month”.
+•Risk choice scenarioscomparing safe versus risky options.
+•Honesty and integrity scenarios, for example, how to react when a lender sends too
+much money by mistake.
+•Financial decision tasksthat compare loans or repayment plans.
+•Planning horizon questions, asking how far ahead the borrower usually plans.
+•Spending versus saving questions, asking whether extra income is first used to buy or
+to save or repay.
+Table 3 gives selected example items used for the borrower scenarios in this report.
+4
+
+=== PAGE 5 ===
+Table 3: Example content items and scoring rules
+Item id Item text (simplified) Main trait Scoring in[0,1]
+Q_CNS_1 “I finish important tasks for my business
+even when I feel tired.” (1–5)Conscientiousness(r−1)/4for
+response
+r∈{1,...,5}
+(positive keying).
+Q_SELF_1 “If I decide to save money, I usually
+succeed in doing it.” (1–5)Self-Control(r−1)/4(positive
+keying).
+Q_GRIT_1 “When my business faces problems, I
+keep trying different solutions until
+things improve.” (1–5)Grit and Perseverance(r−1)/4(positive
+keying).
+Q_LOC_1 “My financial situation depends mainly
+on my own decisions and effort.” (1–5)Locus of Control(r−1)/4(positive
+keying).
+Q_DUTY_1 “If I am late on a payment, I feel very
+uncomfortable until I catch up.” (1–5)Sense of Obligation to
+Repay(r−1)/4(positive
+keying).
+Q_CONF_1 “I feel confident that I can manage a loan
+and make payments on time.” (1–5)Confidence in Financial
+Management(r−1)/4(positive
+keying).
+Q_INT_1 “I follow rules and agreements even when
+no one is watching.” (1–5)Integrity and Rule
+Following(r−1)/4(positive
+keying).
+Q_COMM_1 “Once I agree to do something important,
+I almost always finish it.” (1–5)Commitment and Follow
+Through(r−1)/4(positive
+keying).
+Q_PB_1 “1,000 birr today or 1,300 birr in one
+month?”Present Bias and Time
+PreferenceToday→0.0; one
+month→1.0.
+Q_RISK_1 “Invest the loan in a safe project with
+small profit or a risky project with high
+profit?”Risk Attitude Very safe→0.3;
+safe→0.5; risky
+→0.8; very risky
+→1.0.
+Q_HON_1 “Lender sends you more money than
+agreed. What do you do?”Honesty; Integrity and
+Rule FollowingReturn all→1.0;
+wait and see
+→0.5; keep
+silently→0.0.
+Q_FDQ_1 Choose the cheaper of two loans with
+different interest and fees.Financial Decision
+Making QualityCorrect choice
+→1.0; wrong
+choice→0.0.
+Q_PLANH_1 “How far ahead do you usually plan for
+your business?”Planning Horizon This week→0.0;
+one month→0.33;
+one to three
+months→0.66;
+more than three
+months→1.0.
+Q_SS_1 “When I receive extra income, I first
+think about buying something I want.”
+(1–5, reverse)Spending versus Saving
+OrientationReverse coded:
+1→1.0,5→0.0.
+5
+
+=== PAGE 6 ===
+6 Scoring Methodology
+6.1 Normalisation
+All content item scores are explicitly designed to lie in the interval[0,1]. For Likert items with
+five response options, positive items use
+item_score=r−1
+4,
+whereris the chosen response from one to five. Reverse-keyed items invert the scale.
+Behavioural metadata variables are normalised based on observed ranges in the data. In
+addition, for each trait the direction is aligned so that higher values always correspond to more
+desirable behaviour for that trait, by transformations such as
+skip_good= 1−skip_rate,idle_good= 1−idle_time_ratio.
+6.2 Content-Based Trait Scores
+For each trait, a subset of items is tagged in the item bank as measuring that trait. For a given
+borrower and trait, the content-based score is calculated as the average of the item scores for
+that trait:
+Traitcontent =1
+nn/summationdisplay
+j=1item_score j,
+wherenis the number of items that map to the trait. In a more advanced implementation, item
+weights can be non-equal, or item parameters can be estimated using item response theory.
+6.3 Behaviour-Based Trait Scores from Metadata
+Behaviour-based trait scores are derived from the forty-seven metadata variables. For each
+metadata feature we define a transformed version that reflects “good” behaviour for particular
+traits. For example:
+completion_good=completion_status,
+sessions_good= 1−sessions_count,
+idle_good= 1−idle_time_ratio,
+skip_good= 1−skip_rate,
+hard_good=hard_items_completed_rate,
+speed_impulsive= 1−avg_response_time_sec,
+future_preference= 1−pattern_now_vs_later_score.
+Eachtraitusesasubsetofthesetransformedfeatures. Forexample, asimplebehaviour-based
+Conscientiousness score can be defined as
+Conscientiousness behaviour =completion_good+sessions_good+skip_good+idle_good+hard_good
+5.
+6
+
+=== PAGE 7 ===
+Honesty can incorporate inconsistency and social desirability measures:
+honesty_inconsistency= 1−inconsistency_score,
+honesty_skip_good= 1−skip_rate_integrity_items,
+honesty_desirability= 1−social_desirability_score,
+and a simple behaviour-based Honesty score becomes
+Honestybehaviour =honesty_inconsistency+honesty_skip_good+honesty_desirability
+3.
+The full implementation extends this approach to use all forty-seven metadata variables
+acrossthefifteentraits. Sometraitsusenavigationfeatures(scroll_speed_avg,scroll_zigzag_score,
+back_navigation_count),othersuseriskandtimepreferencesignals(pattern_risky_choices_score,
+pattern_now_vs_later_score),andothersdrawonreadingandcompliancebehaviour(instruction_read_time,
+terms_scroll_depth,instruction_compliance_flags).
+6.4 Combining Content and Metadata
+Foreachtrait, thefinalscoreisaweightedcombinationofthebehaviour-basedandcontent-based
+scores:
+Traitfinal=α·Trait behaviour + (1−α)·Trait content,
+with an initial setting such asα= 0.6for behaviour and0.4for content. This weight can later
+be tuned using real repayment outcomes and reliability analyses.
+7 Five Borrower Scenarios
+This section introduces five fictional borrowers and illustrates how their content responses and
+metadata patterns translate into trait scores. The numbers are illustrative but consistent with
+the scoring logic.
+Borrower 1: Sara
+Saraisahighlyorganised, future-orientedborrowerwhofinishestasksandengagescarefullywith
+the assessment. She chooses future rewards in time preference questions, prefers safe business
+projects, returns extra money immediately in the honesty scenario, and selects the cheaper loan
+correctly. Her metadata shows full completion in one session, very low skip rates, good focus,
+and strong reading of instructions and terms.
+Borrower 2: Mamo
+Mamo shows impulsive behaviour and present bias. In content, he often chooses “now” rather
+than “later”, gives low conscientiousness answers, is strongly drawn to risky options, and chooses
+the more expensive loan in the financial decision item. Metadata shows fast responses, many
+rapid clicks, multiple sessions, higher skip rates, and more inconsistent answers.
+7
+
+=== PAGE 8 ===
+Borrower 3: Lulit
+Lulittendstoanswermodestlyaboutherself(mediumscoresonseveraltraits), butherbehaviour
+in the assessment is very solid: full completion in one session, almost no skips, low idle time,
+thoughtful response times, and strong financial accuracy. Metadata lifts her trait scores above
+what self-report would suggest.
+Borrower 4: Abdi
+Abdi often gives the “right” answers in content, suggesting very high traits. However, his
+metadata shows many sessions, larger idle time, more skipped items, higher inconsistency, and
+very high social desirability. Behaviour-based trait scores down-weight overly optimistic self-
+report signals for traits like Honesty, Conscientiousness, and Commitment and Follow Through.
+Borrower 5: Hanna
+Hanna shows very high Grit and Perseverance and a strong Sense of Obligation to Repay, but
+lower Confidence in Financial Management in self-report. Her behaviour tells a different story:
+she completes all hard items, retries challenging questions, and demonstrates good financial
+decision accuracy, although she tends to choose very safe options in risk tasks. Metadata helps
+correct under-confidence and supports a reliable but cautious borrower profile.
+8 Example Metadata Snapshot
+Table 4 gives a simplified view of metadata for the five borrowers. All values are scaled between
+zero and one. For brevity only a subset is shown here; in an implementation, all forty-seven
+would be included.
+Table 4: Illustrative metadata values (subset) for five bor-
+rowers
+Metadata Sara Mamo Lulit Abdi Hanna
+completion_status 1.00 0.70 1.00 0.80 1.00
+sessions_count 0.10 0.60 0.10 0.70 0.40
+idle_time_ratio 0.10 0.40 0.05 0.50 0.15
+skip_rate 0.02 0.20 0.00 0.15 0.00
+hard_items_completed_rate 0.95 0.50 0.95 0.60 1.00
+avg_response_time_sec 0.55 0.20 0.60 0.85 0.70
+rapid_click_events 0.05 0.60 0.05 0.02 0.00
+pattern_now_vs_later_score 0.20 0.90 0.20 0.50 0.10
+pattern_risky_choices_score 0.40 0.90 0.50 0.60 0.30
+correct_financial_decisions 0.90 0.30 0.95 1.00 0.80
+time_spent_financial_scenarios 0.65 0.30 0.70 0.40 0.60
+time_spent_on_planning_items 0.80 0.20 0.75 0.30 0.70
+skip_rate_integrity_items 0.00 0.10 0.00 0.20 0.00
+inconsistency_score 0.05 0.30 0.05 0.30 0.10
+(continued on next page)
+8
+
+=== PAGE 9 ===
+Metadata Sara Mamo Lulit Abdi Hanna
+social_desirability_score 0.30 0.20 0.25 0.80 0.30
+instruction_read_time 0.70 0.10 0.80 0.20 0.60
+terms_scroll_depth 0.90 0.30 0.95 0.20 0.80
+instruction_compliance_flags 0.00 0.10 0.00 0.20 0.00
+In practice, all forty-seven metadata features would be used when computing behaviour-
+based scores for the fifteen traits. Different traits emphasise different subsets of features (for
+example, risk tasks for Risk Attitude, time preference tasks for Present Bias and Time Prefer-
+ence, navigation and timing for Impulsivity, reading and compliance features for Integrity and
+Rule Following).
+9 Final Trait Scores for Five Borrowers
+Table 5 shows illustrative final trait scores for the five borrowers. These scores reflect a combi-
+nation of content-based and behaviour-based evidence using the methodology described above.
+Table 5: Illustrative final trait scores (scale0to1)
+Trait Sara Mamo Lulit Abdi Hanna
+Conscientiousness 0.97 0.30 0.85 0.55 0.80
+Impulsivity 0.20 0.80 0.30 0.40 0.35
+Confidence in Financial
+Management0.80 0.65 0.70 0.80 0.55
+Planning Horizon 0.95 0.20 0.80 0.40 0.75
+Self-Control 0.90 0.35 0.75 0.50 0.80
+Locus of Control 0.80 0.55 0.75 0.70 0.75
+Honesty 0.93 0.55 0.95 0.65 0.95
+Integrity and Rule Following 0.92 0.50 0.90 0.60 0.90
+Sense of Obligation to Repay 0.95 0.50 0.80 0.70 0.90
+Grit and Perseverance 0.90 0.40 0.85 0.55 0.98
+Present Bias and Time
+Preference0.85 0.15 0.80 0.50 0.90
+Risk Attitude 0.55 0.90 0.60 0.65 0.40
+Financial Decision Making
+Quality0.90 0.25 0.95 0.95 0.80
+Spending versus Saving
+Orientation0.85 0.20 0.60 0.50 0.85
+Commitment and Follow
+Through0.95 0.40 0.80 0.60 0.90
+For example, Sara shows very high Conscientiousness, high Honesty, high Financial Deci-
+sion Making Quality, and strong Present Bias and Time Preference in favour of the future.
+Mamo shows low Conscientiousness, high Impulsivity, strong present bias, and low Financial
+Decision Making Quality. Lulit and Hanna show strong overall profiles with different strengths
+9
+
+=== PAGE 10 ===
+(behavioural reliability versus high grit), while Abdi’s final scores balance high self-report with
+weaker behavioural evidence.
+10 Summary and Next Steps
+This report demonstrates how FrankScore can:
+•Define a clear set of fifteen psychometric traits relevant to creditworthiness.
+•Capture rich behavioural metadata (forty-seven features) from the digital assessment pro-
+cess.
+•Design content (questions and scenarios) that maps explicitly to these traits.
+•Combine content-based and behaviour-based evidence to obtain explainable trait scores for
+each borrower.
+•Represent these outputs as normalised values from zero to one, ready to feed into credit
+models.
+The next steps for the project are to calibrate the scoring rules using real repayment out-
+comes, test fairness and stability across subgroups, and integrate the psychometric trait scores
+into the broader FrankScore credit scoring pipeline.
+10
+

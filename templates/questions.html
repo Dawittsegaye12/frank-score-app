@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="row space-between">
+    <h1>Questionnaire</h1>
+    <div class="pill">assessment_id: <code>{{ assessment_id }}</code></div>
+  </div>
+
+  <div id="status" class="muted"></div>
+
+  <div id="qBox" class="qbox" data-assessment-id="{{ assessment_id }}">
+    <div class="qmeta">
+      <div id="qIndex" class="qindex"></div>
+      <div id="qText" class="qtext"></div>
+    </div>
+
+    <div id="options" class="options">
+      <!-- Options A/B/C/D will be rendered here by questions.js -->
+    </div>
+
+    <div class="row space-between">
+      <button id="prevBtn" class="btn">Back</button>
+      <button id="nextBtn" class="btn primary">Next</button>
+    </div>
+
+    <div id="err" class="error" aria-live="polite"></div>
+  </div>
+
+  <!-- Progress Indicator (below question area) -->
+  <div id="progressContainer" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <span id="progressText" style="font-weight: 600; color: var(--fg);">Loading...</span>
+      <span id="progressPercent" style="font-weight: 700; color: var(--accent);">0%</span>
+    </div>
+    <div style="width: 100%; height: 10px; background: var(--muted); border-radius: 5px; overflow: hidden;">
+      <div id="progressBar"
+        style="width: 0%; height: 100%; background: linear-gradient(90deg, #f97316, #fbbf24); transition: width 0.3s ease;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', path='telemetry.js') }}?v=2"></script>
+<script src="{{ url_for('static', path='questions.js') }}?v=2"></script>
+{% endblock %}

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: frankscore-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SCORING_API_URL
+        value: https://frankscore-backend.onrender.com
+      - key: TENANT_CLIENT_ID
+        sync: false
+      - key: TENANT_CLIENT_SECRET
+        sync: false
+      - key: TENANT_HMAC_SECRET
+        sync: false

@@ -1,0 +1,103 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Data Drift</h2>
+</div>
+
+<div class="status-card">
+  <h3>Overall Drift Score</h3>
+  <div class="metric-card-value" style="margin-top: 10px;">
+    {{ "%.2f"|format(drift.overall_score) }}
+  </div>
+  <p style="margin-top: 10px; color: #64748b; font-size: 14px;">
+    Compared to training baseline. Lower is better.
+  </p>
+</div>
+
+<div class="status-card">
+  <h3>Top Drifted Features (All Models)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature Name</th>
+        <th>Drift Score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for feature in drift.features %}
+      <tr>
+        <td>{{ feature.name }}</td>
+        <td>{{ "%.2f"|format(feature.score) }}</td>
+        <td>
+          <span class="badge badge-{{ feature.status.lower() }}">
+            {{ feature.status }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p style="margin-top: 15px; color: #64748b; font-size: 14px;">
+    <em>Compared to training baseline</em>
+  </p>
+</div>
+
+{% if drift.xgb_features %}
+<div class="status-card">
+  <h3>XGBoost Model - Drifted Traits</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Trait Name</th>
+        <th>Drift Score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for feature in drift.xgb_features %}
+      <tr>
+        <td>{{ feature.name }}</td>
+        <td>{{ "%.2f"|format(feature.score) }}</td>
+        <td>
+          <span class="badge badge-{{ feature.status.lower() }}">
+            {{ feature.status }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if drift.rf_features %}
+<div class="status-card">
+  <h3>Random Forest Model - Drifted Financial Features</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature Name</th>
+        <th>Drift Score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for feature in drift.rf_features %}
+      <tr>
+        <td>{{ feature.name }}</td>
+        <td>{{ "%.2f"|format(feature.score) }}</td>
+        <td>
+          <span class="badge badge-{{ feature.status.lower() }}">
+            {{ feature.status }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Dashboard Overview</h2>
+</div>
+
+<div class="metrics-grid">
+  <div class="status-card">
+    <h3>Model Performance</h3>
+    <div class="status-value status-{{ status.performance.lower() }}">
+      {{ status.performance }}
+    </div>
+  </div>
+  <div class="status-card">
+    <h3>Data Drift</h3>
+    <div class="status-value status-{{ status.drift.lower() }}">
+      {{ status.drift }}
+    </div>
+  </div>
+  <div class="status-card">
+    <h3>API Health</h3>
+    <div class="status-value status-{{ status.uptime.lower() }}">
+      {{ status.uptime }}
+    </div>
+  </div>
+  <div class="status-card">
+    <h3>Fairness</h3>
+    <div class="status-value status-{{ status.fairness.lower() }}">
+      {{ status.fairness }}
+    </div>
+  </div>
+</div>
+
+<div class="alerts-list">
+  <div class="alerts-list-header">Active Alerts (Top 5)</div>
+  {% for alert in alerts %}
+  <div class="alert-item">
+    <div class="alert-item-left">
+      <span class="alert-category {{ alert.category }}">{{ alert.category }}</span>
+      <span class="alert-severity {{ alert.severity }}">{{ alert.severity }}</span>
+      <div class="alert-message">{{ alert.message }}</div>
+      <div class="alert-time">{{ alert.timestamp }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+

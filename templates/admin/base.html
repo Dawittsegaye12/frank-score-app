@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Dashboard - FrankScore</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: #f5f7fa;
+        color: #333;
+        line-height: 1.6;
+      }
+      .admin-container {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 250px;
+        background: #1e293b;
+        color: white;
+        padding: 20px 0;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sidebar-header {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid #334155;
+        margin-bottom: 20px;
+      }
+      .sidebar-header h1 {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .sidebar-nav {
+        list-style: none;
+      }
+      .sidebar-nav a {
+        display: block;
+        padding: 12px 20px;
+        color: #cbd5e1;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+      .sidebar-nav a:hover {
+        background: #334155;
+        color: white;
+      }
+      .sidebar-nav a.active {
+        background: #3b82f6;
+        color: white;
+      }
+      .main-content {
+        margin-left: 250px;
+        flex: 1;
+        padding: 30px;
+      }
+      .page-header {
+        margin-bottom: 30px;
+      }
+      .page-header h2 {
+        font-size: 28px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .filter-bar {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+      .filter-bar label {
+        font-weight: 500;
+        color: #64748b;
+      }
+      .filter-bar input {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .status-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+      }
+      .status-card h3 {
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .status-card .status-value {
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .status-ok { color: #10b981; }
+      .status-warning { color: #f59e0b; }
+      .status-critical { color: #ef4444; }
+      .alerts-list {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+      .alerts-list-header {
+        padding: 20px;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .alert-item {
+        padding: 15px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+      }
+      .alert-item:last-child {
+        border-bottom: none;
+      }
+      .alert-item-left {
+        flex: 1;
+      }
+      .alert-category {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-right: 10px;
+        text-transform: uppercase;
+      }
+      .alert-category.performance { background: #dbeafe; color: #1e40af; }
+      .alert-category.drift { background: #fef3c7; color: #92400e; }
+      .alert-category.uptime { background: #d1fae5; color: #065f46; }
+      .alert-category.fairness { background: #e9d5ff; color: #6b21a8; }
+      .alert-message {
+        margin-top: 5px;
+        color: #475569;
+      }
+      .alert-severity {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .alert-severity.warning { background: #fef3c7; color: #92400e; }
+      .alert-severity.critical { background: #fee2e2; color: #991b1b; }
+      .alert-time {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 5px;
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .metric-card-label {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 8px;
+      }
+      .metric-card-value {
+        font-size: 32px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      table {
+        width: 100%;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+      thead {
+        background: #f8fafc;
+      }
+      th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      td {
+        padding: 15px;
+        border-top: 1px solid #f1f5f9;
+        color: #334155;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .badge-ok { background: #d1fae5; color: #065f46; }
+      .badge-warning { background: #fef3c7; color: #92400e; }
+      .badge-critical { background: #fee2e2; color: #991b1b; }
+      .confusion-matrix {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        max-width: 400px;
+        margin-top: 20px;
+      }
+      .confusion-cell {
+        background: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .confusion-cell-label {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 5px;
+      }
+      .confusion-cell-value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class="admin-container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h1>FrankScore Admin</h1>
+        </div>
+        <nav>
+          <ul class="sidebar-nav">
+            <li><a href="/admin" class="{% if request.url.path == '/admin' %}active{% endif %}">Overview</a></li>
+            <li><a href="/admin/performance" class="{% if request.url.path == '/admin/performance' %}active{% endif %}">Performance</a></li>
+            <li><a href="/admin/drift" class="{% if request.url.path == '/admin/drift' %}active{% endif %}">Drift</a></li>
+            <li><a href="/admin/uptime" class="{% if request.url.path == '/admin/uptime' %}active{% endif %}">Uptime</a></li>
+            <li><a href="/admin/fairness" class="{% if request.url.path == '/admin/fairness' %}active{% endif %}">Fairness</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <main class="main-content">
+        <div class="filter-bar">
+          <label>From:</label>
+          <input type="date" id="date-from" />
+          <label>To:</label>
+          <input type="date" id="date-to" />
+        </div>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    {% block extra_js %}{% endblock %}
+    <script>
+      // Set default date range (last 14 days)
+      (function() {
+        const today = new Date();
+        const twoWeeksAgo = new Date(today);
+        twoWeeksAgo.setDate(today.getDate() - 14);
+        
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        
+        const fromInput = document.getElementById('date-from');
+        const toInput = document.getElementById('date-to');
+        
+        if (fromInput) fromInput.value = formatDate(twoWeeksAgo);
+        if (toInput) toInput.value = formatDate(today);
+      })();
+    </script>
+  </body>
+</html>
+

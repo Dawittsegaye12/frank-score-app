@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="card">
+    <div class="row space-between">
+      <h1>Financial (optional)</h1>
+      <div class="pill">assessment_id: <code>{{ assessment_id }}</code></div>
+    </div>
+
+    <p class="muted">These inputs are used only to compute an optional financial PD (demo).</p>
+
+    <form id="finForm" class="form">
+      <label>
+        Monthly income
+        <input name="monthly_income" type="number" step="0.01" min="0" required />
+      </label>
+
+      <label>
+        Monthly expenses
+        <input name="monthly_expenses" type="number" step="0.01" min="0" required />
+      </label>
+
+      <label>
+        Total debt
+        <input name="total_debt" type="number" step="0.01" min="0" required />
+      </label>
+
+      <label>
+        Missed payments (last 3 months)
+        <input name="missed_payments_3m" type="number" step="1" min="0" max="24" required />
+      </label>
+
+      <div class="row">
+        <button id="submitBtn" class="btn primary" type="submit">Submit &amp; view results</button>
+        <div id="err" class="error" aria-live="polite"></div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const assessmentId = "{{ assessment_id }}";
+    const form = document.getElementById("finForm");
+    const err = document.getElementById("err");
+    const btn = document.getElementById("submitBtn");
+
+    function setErr(msg){ err.textContent = msg || ""; }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setErr("");
+      btn.disabled = true;
+      btn.textContent = "Submitting...";
+
+      const fd = new FormData(form);
+      const payload = {
+        assessment_id: assessmentId,
+        monthly_income: Number(fd.get("monthly_income")),
+        monthly_expenses: Number(fd.get("monthly_expenses")),
+        total_debt: Number(fd.get("total_debt")),
+        missed_payments_3m: Number(fd.get("missed_payments_3m"))
+      };
+
+      try {
+        const r1 = await fetch("/api/financial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!r1.ok) throw new Error(await r1.text());
+
+        const r2 = await fetch("/api/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assessment_id: assessmentId })
+        });
+        if (!r2.ok) throw new Error(await r2.text());
+
+        window.location.href = `/result?assessment_id=${encodeURIComponent(assessmentId)}`;
+      } catch (e2) {
+        setErr(String(e2 && e2.message ? e2.message : e2));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Submit & view results";
+      }
+    });
+  </script>
+{% endblock %}
+
+

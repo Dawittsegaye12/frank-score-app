@@ -1,0 +1,144 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Model Performance</h2>
+</div>
+
+<h3 style="margin-bottom: 20px; color: #475569;">Combined Model (Final PD)</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-card-label">Accuracy</div>
+    <div class="metric-card-value">
+      {% if metrics.combined.accuracy %}{{ "%.3f"|format(metrics.combined.accuracy) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">F1 Score</div>
+    <div class="metric-card-value">
+      {% if metrics.combined.f1 %}{{ "%.3f"|format(metrics.combined.f1) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">AUC</div>
+    <div class="metric-card-value">
+      {% if metrics.combined.auc %}{{ "%.3f"|format(metrics.combined.auc) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+</div>
+
+<h3 style="margin: 30px 0 20px 0; color: #475569;">XGBoost Model (Psychometric PD)</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-card-label">Accuracy</div>
+    <div class="metric-card-value">
+      {% if metrics.xgb_model.accuracy %}{{ "%.3f"|format(metrics.xgb_model.accuracy) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">F1 Score</div>
+    <div class="metric-card-value">
+      {% if metrics.xgb_model.f1 %}{{ "%.3f"|format(metrics.xgb_model.f1) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">AUC</div>
+    <div class="metric-card-value">
+      {% if metrics.xgb_model.auc %}{{ "%.3f"|format(metrics.xgb_model.auc) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Avg PD</div>
+    <div class="metric-card-value">
+      {% if metrics.xgb_model.avg_pd %}{{ "%.3f"|format(metrics.xgb_model.avg_pd) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Predictions</div>
+    <div class="metric-card-value">
+      {{ metrics.xgb_model.prediction_count }}
+    </div>
+  </div>
+</div>
+
+<h3 style="margin: 30px 0 20px 0; color: #475569;">Random Forest Model (Financial PD)</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-card-label">Accuracy</div>
+    <div class="metric-card-value">
+      {% if metrics.rf_model.accuracy %}{{ "%.3f"|format(metrics.rf_model.accuracy) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">F1 Score</div>
+    <div class="metric-card-value">
+      {% if metrics.rf_model.f1 %}{{ "%.3f"|format(metrics.rf_model.f1) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">AUC</div>
+    <div class="metric-card-value">
+      {% if metrics.rf_model.auc %}{{ "%.3f"|format(metrics.rf_model.auc) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Avg PD</div>
+    <div class="metric-card-value">
+      {% if metrics.rf_model.avg_pd %}{{ "%.3f"|format(metrics.rf_model.avg_pd) }}{% else %}N/A{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Predictions</div>
+    <div class="metric-card-value">
+      {{ metrics.rf_model.prediction_count }}
+    </div>
+  </div>
+</div>
+
+<div class="status-card">
+  <h3>Performance Over Time (Last 14 Days)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Combined Accuracy</th>
+        <th>XGBoost Accuracy</th>
+        <th>RF Accuracy</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in metrics.timeseries %}
+      <tr>
+        <td>{{ day.date }}</td>
+        <td>{{ "%.3f"|format(day.combined_accuracy) }}</td>
+        <td>{{ "%.3f"|format(day.xgb_accuracy) }}</td>
+        <td>{{ "%.3f"|format(day.rf_accuracy) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="status-card">
+  <h3>Confusion Matrix</h3>
+  <div class="confusion-matrix">
+    <div class="confusion-cell">
+      <div class="confusion-cell-label">True Positive</div>
+      <div class="confusion-cell-value">{{ metrics.confusion_matrix.tp }}</div>
+    </div>
+    <div class="confusion-cell">
+      <div class="confusion-cell-label">False Positive</div>
+      <div class="confusion-cell-value">{{ metrics.confusion_matrix.fp }}</div>
+    </div>
+    <div class="confusion-cell">
+      <div class="confusion-cell-label">False Negative</div>
+      <div class="confusion-cell-value">{{ metrics.confusion_matrix.fn }}</div>
+    </div>
+    <div class="confusion-cell">
+      <div class="confusion-cell-label">True Negative</div>
+      <div class="confusion-cell-value">{{ metrics.confusion_matrix.tn }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

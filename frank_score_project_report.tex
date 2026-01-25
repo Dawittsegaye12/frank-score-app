@@ -1,0 +1,518 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\geometry{margin=1in}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=5pt,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4,
+    showstringspaces=false
+}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{FrankScore Psychometric Assessment System}
+\fancyhead[R]{\today}
+\fancyfoot[C]{\thepage}
+
+% Title formatting
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+
+\title{\textbf{FrankScore Psychometric Assessment System}\\
+\large Technical Implementation Report}
+\author{Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report documents the development and implementation of the FrankScore psychometric assessment system. The system implements a comprehensive three-body model for computing psychometric traits from questionnaire responses and behavioral metadata, integrated with machine learning models for probability of default (PD) prediction. The system features a modern web interface, real-time telemetry tracking, and a complete scoring pipeline from data collection to final PD computation.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Project Overview}
+The FrankScore system is a web-based psychometric assessment platform designed to evaluate user traits and predict probability of default (PD) for credit risk assessment. The system combines explicit questionnaire responses with implicit behavioral metadata to compute 15 psychometric traits, which are then used by a trained XGBoost model to predict PD.
+
+\subsection{Key Objectives}
+\begin{itemize}
+    \item Implement a three-body scoring model (content + behavior + combined)
+    \item Integrate machine learning model for PD prediction
+    \item Collect and process 30 metadata features from user interactions
+    \item Provide a modern, responsive web interface
+    \item Ensure robust data validation and error handling
+\end{itemize}
+
+\section{System Architecture}
+
+\subsection{Technology Stack}
+\begin{itemize}
+    \item \textbf{Backend}: FastAPI (Python 3.13)
+    \item \textbf{Database}: SQLite
+    \item \textbf{Frontend}: Vanilla JavaScript, HTML5, CSS3
+    \item \textbf{Templating}: Jinja2
+    \item \textbf{Machine Learning}: XGBoost, scikit-learn
+    \item \textbf{Data Processing}: pandas, numpy
+\end{itemize}
+
+\subsection{System Components}
+The system consists of the following main components:
+
+\begin{enumerate}
+    \item \textbf{Web Application} (\texttt{app.py}): FastAPI server handling routes and API endpoints
+    \item \textbf{Database Layer} (\texttt{db.py}): SQLite database operations and schema management
+    \item \textbf{Scoring Engine} (\texttt{scoring.py}): Core trait computation and PD prediction logic
+    \item \textbf{Frontend Assets}: HTML templates, CSS styling, and JavaScript for client-side functionality
+    \item \textbf{Telemetry System}: Client-side metadata collection and event tracking
+\end{enumerate}
+
+\section{Database Schema}
+
+\subsection{Table Structure}
+The system uses SQLite with the following tables:
+
+\begin{itemize}
+    \item \textbf{attempts}: Stores assessment sessions
+        \begin{itemize}
+            \item \texttt{assessment\_id} (TEXT, PRIMARY KEY): Unique identifier in format FSxxxxxx
+            \item \texttt{session\_id} (TEXT): Session identifier
+            \item \texttt{status} (TEXT): Assessment status (in\_progress, completed)
+            \item \texttt{started\_at\_ms}, \texttt{completed\_at\_ms} (INTEGER): Timestamps
+        \end{itemize}
+    
+    \item \textbf{responses}: Stores question answers
+        \begin{itemize}
+            \item \texttt{assessment\_id} (TEXT): Foreign key to attempts
+            \item \texttt{item\_id} (TEXT): Question identifier (e.g., "1.1")
+            \item \texttt{selected\_option} (TEXT): User's answer (A, B, C, or D)
+            \item \texttt{answered\_at\_ms} (INTEGER): Timestamp
+        \end{itemize}
+    
+    \item \textbf{events}: Stores telemetry events
+        \begin{itemize}
+            \item \texttt{assessment\_id}, \texttt{session\_id} (TEXT)
+            \item \texttt{event\_name} (TEXT): Event type (assessment\_start, question\_view, etc.)
+            \item \texttt{client\_ts\_ms} (INTEGER): Client timestamp
+            \item \texttt{payload\_json} (TEXT): JSON payload with event data
+        \end{itemize}
+    
+    \item \textbf{financial}: Optional financial data
+        \begin{itemize}
+            \item \texttt{assessment\_id} (TEXT, PRIMARY KEY)
+            \item \texttt{monthly\_income}, \texttt{monthly\_expenses}, \texttt{total\_debt} (REAL)
+            \item \texttt{missed\_payments\_3m} (INTEGER)
+        \end{itemize}
+    
+    \item \textbf{computed}: Final computed results
+        \begin{itemize}
+            \item \texttt{assessment\_id} (TEXT, PRIMARY KEY)
+            \item \texttt{metadata\_json} (TEXT): 30 metadata features
+            \item \texttt{traits\_json} (TEXT): 15 computed traits
+            \item \texttt{pd\_psych\_hat}, \texttt{pd\_fin\_hat}, \texttt{pd\_final\_hat} (REAL)
+        \end{itemize}
+\end{itemize}
+
+\section{Scoring System}
+
+\subsection{Three-Body Model}
+The scoring system implements a three-body model as follows:
+
+\subsubsection{1. Content-Based Traits}
+Content traits are computed from explicit questionnaire responses:
+
+\begin{lstlisting}[caption=Content Trait Computation]
+def compute_content_traits(answers_by_item, score_map, trait_names):
+    # Map A/B/C/D options to scores (0-3)
+    # Group by trait_id
+    # Average scores per trait
+    # Normalize: trait_content = mean(scores) / 3.0
+    return traits  # Dict[str, float] in [0,1]
+\end{lstlisting}
+
+\textbf{Formula}: 
+\begin{equation}
+\text{trait\_content} = \frac{\text{mean(item\_scores)}}{3.0}
+\end{equation}
+
+\subsubsection{2. Behavior-Based Traits}
+Behavior traits are computed from 30 metadata features:
+
+\begin{lstlisting}[caption=Behavior Trait Computation]
+def compute_behaviour_traits(metadata, trait_names):
+    # Transform metadata to "good" versions
+    # Map transformed features to traits
+    # Each trait uses weighted combination
+    return traits  # Dict[str, float] in [0,1]
+\end{lstlisting}
+
+The system transforms metadata features to "good" versions where higher values indicate better creditworthiness:
+\begin{itemize}
+    \item \texttt{completion\_good} = \texttt{completion\_status}
+    \item \texttt{sessions\_good} = 1 - normalize(\texttt{sessions\_count})
+    \item \texttt{idle\_good} = 1 - \texttt{idle\_time\_ratio}
+    \item \texttt{response\_good}: Moderate response times (5-15s) are optimal
+    \item \texttt{rapid\_good} = 1 - \texttt{rapid\_click\_rate}
+    \item And 10 more transformed features...
+\end{itemize}
+
+\subsubsection{3. Combined Traits}
+Final traits combine content and behavior:
+
+\begin{lstlisting}[caption=Combined Trait Computation]
+def compute_combined_traits(content_traits, behaviour_traits, alpha=0.6):
+    # Weighted average: 60% behavior + 40% content
+    trait_final = alpha * trait_behaviour + (1 - alpha) * trait_content
+    return combined_traits
+\end{lstlisting}
+
+\textbf{Formula}:
+\begin{equation}
+\text{Trait\_final} = 0.6 \times \text{Trait\_behaviour} + 0.4 \times \text{Trait\_content}
+\end{equation}
+
+\subsection{The 15 Psychometric Traits}
+\begin{enumerate}
+    \item Conscientiousness
+    \item Impulsivity
+    \item Financial Self-Confidence
+    \item Planning Horizon
+    \item Self-Control
+    \item Locus of Control
+    \item Honesty
+    \item Integrity / Rule Following
+    \item Obligation to Repay
+    \item Grit / Perseverance
+    \item Present Bias / Time Preference
+    \item Risk Attitude
+    \item Financial Decision Quality
+    \item Spending vs. Saving Orientation
+    \item Commitment / Follow-Through
+\end{enumerate}
+
+\section{Metadata Collection}
+
+\subsection{30 Metadata Features}
+The system tracks 30 metadata features grouped into categories:
+
+\begin{itemize}
+    \item \textbf{Session \& Completion (6)}: completion\_status, completion\_time\_sec, sessions\_count, partial\_attempts\_count, return\_after\_disconnection, abandonment\_flag
+    
+    \item \textbf{Response Timing (7)}: avg\_response\_time\_sec, response\_time\_std\_sec, median\_response\_time\_sec, min/max\_response\_time\_sec, idle\_time\_total\_sec, idle\_time\_ratio
+    
+    \item \textbf{Click \& Hesitation (4)}: rapid\_click\_events, rapid\_click\_rate, hesitation\_time\_avg, hesitation\_time\_financial\_items
+    
+    \item \textbf{Answer Behavior (5)}: skip\_rate, answer\_change\_rate, answer\_change\_rate\_financial\_items, extreme\_option\_rate, inconsistency\_score
+    
+    \item \textbf{Scroll \& Navigation (5)}: scroll\_events\_count, scroll\_depth\_avg, scroll\_depth\_max, scroll\_zigzag\_score, back\_nav\_count
+    
+    \item \textbf{Reading \& Compliance (3)}: terms\_screen\_time, terms\_scroll\_depth, instruction\_compliance\_flags
+\end{itemize}
+
+\subsection{Client-Side Telemetry}
+The system uses a sophisticated client-side telemetry system (\texttt{telemetry.js}) that:
+\begin{itemize}
+    \item Tracks all user interactions in real-time
+    \item Computes metadata features client-side
+    \item Batches events and sends every 3 seconds or 30 events
+    \item Uses sendBeacon for reliable delivery on page unload
+    \item Implements idle detection, scroll tracking, and terms page tracking
+\end{itemize}
+
+\section{Machine Learning Integration}
+
+\subsection{XGBoost Model}
+The system integrates a trained XGBoost classifier for psychometric PD prediction:
+
+\begin{lstlisting}[caption=Model Loading and Prediction]
+def load_xgb_model():
+    # Loads model from models/xgb_model.joblib
+    # Extracts model and feature_columns
+    # Stores in global variables
+
+def psychometric_pd(traits, trait_names):
+    # Maps traits to model feature columns
+    # Creates feature vector
+    # Calls model.predict_proba()
+    # Returns PD probability (0-1)
+\end{lstlisting}
+
+\subsection{Feature Mapping}
+The system includes sophisticated trait-to-feature mapping:
+\begin{itemize}
+    \item Normalizes trait names for fuzzy matching
+    \item Handles explicit mappings (e.g., "impulsivity" → "impulsivity\_control")
+    \item Supports partial matching for robustness
+\end{itemize}
+
+\subsection{Model Training}
+An improved training script (\texttt{model\_training\_improved.py}) addresses:
+\begin{itemize}
+    \item Feature normalization to [0,1] range (critical fix)
+    \item Model validation and responsiveness testing
+    \item Enhanced metrics and diagnostics
+    \item Proper train/validation/test splits
+\end{itemize}
+
+\section{Financial PD Calculation}
+
+The system also computes financial PD using a deterministic formula:
+
+\begin{equation}
+z = a_0 + a_1 \times \text{DTI} + a_2 \times \text{missed\_payments} - a_3 \times \text{savings\_norm}
+\end{equation}
+
+\begin{equation}
+\text{PD\_financial} = \text{sigmoid}(z)
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item DTI = Debt-to-Income ratio
+    \item savings\_norm = Normalized savings rate
+    \item Coefficients: $a_0 = -1.00$, $a_1 = +1.20$, $a_2 = +0.60$, $a_3 = +1.00$
+\end{itemize}
+
+\section{Final PD Combination}
+
+The system combines psychometric and financial PD:
+
+\begin{equation}
+\text{PD\_final} = 0.6 \times \text{PD\_financial} + 0.4 \times \text{PD\_psychometric}
+\end{equation}
+
+\section{API Endpoints}
+
+\subsection{Core Endpoints}
+\begin{itemize}
+    \item \texttt{POST /api/start}: Creates new assessment, returns assessment\_id and session\_id
+    \item \texttt{GET /api/questions}: Returns 15 questions (one per trait) with rotation
+    \item \texttt{POST /api/answer}: Saves individual question answer
+    \item \texttt{POST /api/events}: Receives batched telemetry events
+    \item \texttt{POST /api/financial}: Saves optional financial data
+    \item \texttt{POST /api/complete}: Computes traits and PD, stores results
+    \item \texttt{GET /api/result}: Retrieves computed results for display
+\end{itemize}
+
+\subsection{Question Rotation}
+The system implements deterministic question rotation:
+\begin{itemize}
+    \item Each trait has 5 questions in the question bank
+    \item System selects 1 question per trait based on assessment\_id hash
+    \item Ensures different users see different questions while maintaining consistency
+\end{itemize}
+
+\section{Frontend Design}
+
+\subsection{Modern UI Enhancements}
+The frontend features a modern, polished design:
+
+\begin{itemize}
+    \item \textbf{Glassmorphism}: Backdrop blur effects and transparency
+    \item \textbf{Smooth Animations}: Fade-in transitions, hover effects, shimmer animations
+    \item \textbf{Enhanced Gradients}: Multi-layer radial gradients for depth
+    \item \textbf{Interactive Elements}: Ripple effects on buttons, smooth transitions
+    \item \textbf{Responsive Design}: Mobile-friendly breakpoints
+    \item \textbf{Progress Visualization}: Animated progress bars with shimmer effects
+\end{itemize}
+
+\subsection{User Experience Flow}
+\begin{enumerate}
+    \item \textbf{Terms Page}: User accepts consent, optionally provides financial consent
+    \item \textbf{Questionnaire}: 15 questions displayed one at a time with A/B/C/D options
+    \item \textbf{Financial Form}: Optional financial data collection
+    \item \textbf{Results Page}: Displays computed traits, metadata, and PD scores
+\end{enumerate}
+
+\section{Data Validation and Error Handling}
+
+\subsection{Robust Error Handling}
+\begin{itemize}
+    \item Safe type conversion functions (\texttt{\_safe\_float}, \texttt{\_safe\_int})
+    \item Value clamping to ensure ranges stay within [0,1]
+    \item Explicit error messages for missing data
+    \item Fallback mechanisms for metadata computation
+    \item Model prediction error handling with graceful degradation
+\end{itemize}
+
+\subsection{Validation Rules}
+\begin{itemize}
+    \item All traits must have answers (raises ValueError if missing)
+    \item All traits must be present in both content and behavior computations
+    \item Feature vectors must match model expectations
+    \item Assessment IDs must exist before operations
+\end{itemize}
+
+\section{Key Features Implemented}
+
+\subsection{Core Features}
+\begin{itemize}
+    \item ✓ Three-body scoring model (content + behavior + combined)
+    \item ✓ 30 metadata feature collection and processing
+    \item ✓ 15 psychometric trait computation
+    \item ✓ XGBoost model integration for PD prediction
+    \item ✓ Financial PD calculation
+    \item ✓ Combined PD computation
+    \item ✓ Question rotation system
+    \item ✓ Real-time telemetry tracking
+    \item ✓ Modern, responsive web interface
+    \item ✓ Comprehensive error handling
+\end{itemize}
+
+\subsection{Advanced Features}
+\begin{itemize}
+    \item ✓ Client-side metadata computation (30 features)
+    \item ✓ Server-side fallback computation
+    \item ✓ Batch event processing
+    \item ✓ Deterministic question selection
+    \item ✓ Trait name normalization and fuzzy matching
+    \item ✓ Model feature mapping with explicit overrides
+    \item ✓ Logging and debugging instrumentation
+    \item ✓ Model validation and responsiveness testing
+\end{itemize}
+
+\section{Technical Challenges and Solutions}
+
+\subsection{Challenge 1: Feature Scale Mismatch}
+\textbf{Problem}: Model was trained on traits in 1-99 range, but inference used 0-1 range.
+
+\textbf{Solution}: Created improved training script that normalizes features to [0,1] during training to match inference scale.
+
+\subsection{Challenge 2: Model Always Returning Same Value}
+\textbf{Problem}: Model always predicted 0.9177 regardless of input.
+
+\textbf{Solution}: Identified degenerate model requiring retraining. Implemented model validation checks to catch such issues early.
+
+\subsection{Challenge 3: Metadata Completion Status}
+\textbf{Problem}: Completion status was always 0 despite completion.
+
+\textbf{Solution}: Added safeguards in client-side code to unconditionally set completion\_status=1 when computeMetadata() is called.
+
+\subsection{Challenge 4: Trait Name Mismatches}
+\textbf{Problem}: Trait names from question bank didn't match model feature columns.
+
+\textbf{Solution}: Implemented fuzzy matching with explicit mappings for known mismatches (e.g., "impulsivity" → "impulsivity\_control").
+
+\section{File Structure}
+
+\begin{verbatim}
+frank-score-app/
+├── app.py                    # FastAPI application
+├── db.py                     # Database operations
+├── scoring.py                # Scoring engine (707 lines)
+├── model_training_improved.py # Improved training script
+├── requirements.txt          # Python dependencies
+├── models/
+│   └── xgb_model.joblib     # Trained XGBoost model
+├── questiondb/
+│   ├── psychometric_question_bank_v2_public.json
+│   └── psychometric_question_bank_v2_admin.json
+├── static/
+│   ├── app.css              # Enhanced styling
+│   ├── questions.js         # Questionnaire logic
+│   └── telemetry.js         # Telemetry system (624 lines)
+├── templates/
+│   ├── base.html
+│   ├── terms.html
+│   ├── questions.html
+│   ├── financial.html
+│   └── result.html
+└── frankscore_demo.db       # SQLite database
+\end{verbatim}
+
+\section{Performance Considerations}
+
+\begin{itemize}
+    \item \textbf{Database}: SQLite provides fast local storage with minimal overhead
+    \item \textbf{Event Batching}: Telemetry events are batched (every 3s or 30 events) to reduce server load
+    \item \textbf{Model Loading}: XGBoost model loaded once at startup, cached in memory
+    \item \textbf{Client-Side Computation}: Metadata computed client-side reduces server processing
+    \item \textbf{Efficient Queries}: Database queries use indexes on assessment\_id
+\end{itemize}
+
+\section{Future Enhancements}
+
+\subsection{Potential Improvements}
+\begin{itemize}
+    \item Hyperparameter tuning for XGBoost model
+    \item Feature engineering (interactions, polynomials)
+    \item Cross-validation for model evaluation
+    \item Ensemble methods (multiple models)
+    \item Real-time dashboard for monitoring
+    \item Export functionality for results
+    \item Multi-language support
+    \item Advanced analytics and reporting
+\end{itemize}
+
+\section{Conclusion}
+
+The FrankScore psychometric assessment system successfully implements a comprehensive three-body scoring model integrated with machine learning for PD prediction. The system features robust data collection, sophisticated trait computation, and a modern web interface. Key achievements include:
+
+\begin{itemize}
+    \item Complete implementation of three-body model
+    \item Integration of XGBoost model for PD prediction
+    \item Comprehensive metadata collection (30 features)
+    \item Modern, responsive web interface
+    \item Robust error handling and validation
+    \item Model training improvements and validation
+\end{itemize}
+
+The system is production-ready for demo purposes and provides a solid foundation for further development and enhancement.
+
+\section{References}
+
+\begin{itemize}
+    \item FastAPI Documentation: \url{https://fastapi.tiangolo.com/}
+    \item XGBoost Documentation: \url{https://xgboost.readthedocs.io/}
+    \item SQLite Documentation: \url{https://www.sqlite.org/docs.html}
+    \item Project Repository: \url{https://github.com/Dawittsegaye12/frank-score-app}
+\end{itemize}
+
+\appendix
+
+\section{Code Statistics}
+\begin{itemize}
+    \item \texttt{scoring.py}: 707 lines
+    \item \texttt{telemetry.js}: 624 lines
+    \item \texttt{app.py}: 385 lines
+    \item \texttt{db.py}: 315 lines
+    \item \texttt{questions.js}: 293 lines
+    \item Total: ~2,300+ lines of code
+\end{itemize}
+
+\section{Database Schema Details}
+The database schema includes proper indexing on \texttt{assessment\_id} for efficient queries and maintains referential integrity through application logic.
+
+\end{document}
+

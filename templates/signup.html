@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Sign Up</h1>
+  <p class="muted">Create a new account to get started</p>
+
+  <form id="signupForm" class="form">
+    <label>
+      Username
+      <input name="username" type="text" required autocomplete="username" minlength="3" maxlength="50" />
+      <small class="muted">3-50 characters</small>
+    </label>
+
+    <label>
+      Email (optional)
+      <input name="email" type="email" autocomplete="email" />
+    </label>
+
+    <label>
+      Password
+      <input name="password" type="password" required autocomplete="new-password" minlength="6" />
+      <small class="muted">At least 6 characters</small>
+    </label>
+
+    <div class="row">
+      <button id="signupBtn" class="btn primary" type="submit">Sign Up</button>
+      <div id="err" class="error" aria-live="polite"></div>
+    </div>
+  </form>
+
+  <div style="margin-top: 1.5rem; text-align: center;">
+    <p class="muted">Already have an account? <a href="/login">Login</a></p>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById("signupForm");
+  const err = document.getElementById("err");
+  const btn = document.getElementById("signupBtn");
+
+  function setErr(msg) {
+    err.textContent = msg || "";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setErr("");
+    btn.disabled = true;
+    btn.textContent = "Creating account...";
+
+    const fd = new FormData(form);
+    const payload = {
+      username: fd.get("username"),
+      password: fd.get("password"),
+      email: fd.get("email") || null
+    };
+
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ detail: "Signup failed" }));
+        throw new Error(data.detail || "Signup failed");
+      }
+
+      const data = await res.json();
+      
+      // Store user info in sessionStorage
+      sessionStorage.setItem("fs_user_id", String(data.user_id));
+      sessionStorage.setItem("fs_username", payload.username);
+
+      // Redirect to terms page
+      window.location.href = `/terms?user_id=${data.user_id}`;
+    } catch (e) {
+      setErr(String(e && e.message ? e.message : e));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Sign Up";
+    }
+  });
+</script>
+{% endblock %}
+

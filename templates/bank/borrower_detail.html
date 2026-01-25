@@ -1,0 +1,329 @@
+{% extends "bank/base.html" %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-900">Borrower: {{ assessment_id }}</h1>
+    <div class="space-x-2">
+        <button onclick="window.print()" class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300">Export
+            PDF</button>
+        <a href="/bank/borrowers" class="text-blue-600 hover:text-blue-800">&larr; Back to list</a>
+    </div>
+</div>
+
+<style media="print">
+    nav,
+    button,
+    a {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+        border: 1px solid #ddd;
+    }
+</style>
+
+<!-- Score Card -->
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Risk Assessment</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div>
+            <p class="text-sm text-gray-500">Combined PD</p>
+            <p class="text-3xl font-bold text-gray-800" id="pdDisplay">-</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500">Risk Band</p>
+            <p class="text-3xl font-bold" id="riskBandDisplay">-</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500">Status</p>
+            <p class="text-xl" id="statusDisplay">-</p>
+        </div>
+    </div>
+</div>
+
+<!-- Drivers -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-md font-bold text-green-700 mb-3">Top Strengths (Low Risk Factors)</h3>
+        <ul id="posDrivers" class="space-y-2 text-sm"></ul>
+    </div>
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-md font-bold text-red-700 mb-3">Top Risk Factors</h3>
+        <ul id="negDrivers" class="space-y-2 text-sm"></ul>
+    </div>
+</div>
+
+<!-- Traits and Metadata Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Traits Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Psychometric Traits</h2>
+        <div id="traitsList" class="space-y-4">
+            <!-- Traits populated via JS -->
+        </div>
+    </div>
+
+    <!-- Metadata Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Telemetry Metadata</h2>
+        <div id="metadataList" class="grid grid-cols-1 gap-y-2 text-sm font-mono text-gray-600">
+            <!-- Metadata populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Explainability Card -->
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="flex justify-between items-center border-b pb-2 mb-4">
+        <h2 class="text-lg font-medium text-gray-900">Model Explainability</h2>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">Method:</span>
+            <select id="explainMethod" onchange="loadExplainability()" class="border rounded px-2 py-1 text-sm">
+                <option value="shap">SHAP</option>
+                <option value="lime">LIME</option>
+            </select>
+            <select id="explainModel" onchange="loadExplainability()" class="border rounded px-2 py-1 text-sm">
+                <option value="psychometric">Psychometric</option>
+                <option value="kenya">Kenya (Financial)</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="explainLoading" class="text-center py-4 text-gray-500 hidden">
+        <span>Loading explanation...</span>
+    </div>
+
+    <div id="explainError" class="bg-red-50 text-red-700 p-3 rounded hidden"></div>
+
+    <div id="explainContent" class="hidden">
+        <div class="mb-4 text-center">
+            <p class="text-sm text-gray-500">Model Prediction</p>
+            <p class="text-2xl font-bold" id="explainPrediction">-</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h4 class="text-sm font-bold text-red-600 mb-2">Factors Increasing Risk</h4>
+                <ul id="explainPositive" class="space-y-1 text-sm"></ul>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-green-600 mb-2">Factors Decreasing Risk</h4>
+                <ul id="explainNegative" class="space-y-1 text-sm"></ul>
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-400 mt-4 italic">
+            Explanations show model reasoning, not guaranteed real-world causality.
+        </p>
+    </div>
+</div>
+
+<!-- Notes -->
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Underwriter Notes</h2>
+    <div class="mb-4">
+        <textarea id="noteText" class="w-full border rounded p-2" rows="3" placeholder="Add a note..."></textarea>
+        <div class="mt-2 flex justify-end">
+            <select id="noteCategory" class="border rounded px-2 py-1 mr-2 text-sm">
+                <option value="General">General</option>
+                <option value="Risk Flag">Risk Flag</option>
+                <option value="Missing Data">Missing Data</option>
+            </select>
+            <button onclick="addNote()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">Add
+                Note</button>
+        </div>
+    </div>
+    <div id="notesList" class="space-y-4 max-h-60 overflow-y-auto">
+        <!-- Notes populated here -->
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const assessmentId = "{{ assessment_id }}";
+
+    async function loadData() {
+        const res = await fetch(`/bank/api/borrowers/${assessmentId}`);
+        const data = await res.json();
+
+        // Display Score
+        if (data.score && data.score.pd_final_hat !== null) {
+            const pd = data.score.pd_final_hat;
+            document.getElementById('pdDisplay').innerText = (pd * 100).toFixed(1) + '%';
+
+            let band = 'High';
+            let color = 'text-red-600';
+            if (pd < 0.05) { band = 'Low'; color = 'text-green-600'; }
+            else if (pd < 0.15) { band = 'Medium'; color = 'text-yellow-600'; }
+
+            const rbEl = document.getElementById('riskBandDisplay');
+            rbEl.innerText = band;
+            rbEl.className = `text-3xl font-bold ${color}`;
+        }
+
+        document.getElementById('statusDisplay').innerText = data.assessment.status;
+
+        // Drivers
+        const posList = document.getElementById('posDrivers');
+        const negList = document.getElementById('negDrivers');
+
+        // Format: feature name usually like "conscientiousness". Make it readable.
+        const formatName = (s) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        data.drivers.forEach(d => {
+            const li = document.createElement('li');
+            li.className = "flex justify-between border-b border-gray-100 py-1";
+            li.innerHTML = `<span>${formatName(d.feature)}</span> <span class="font-mono text-gray-500">${d.value.toFixed(2)}</span>`;
+
+            if (d.direction === 'positive') posList.appendChild(li);
+            else negList.appendChild(li);
+        });
+
+        // --- NEW: Traits ---
+        const traitsList = document.getElementById('traitsList');
+        traitsList.innerHTML = '';
+        if (data.score && data.score.trait_final) {
+            const traits = data.score.trait_final;
+            Object.entries(traits).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
+                const pct = Math.round(val * 100);
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="flex justify-between text-base mb-1">
+                        <span class="text-gray-700 font-medium">${formatName(key)}</span>
+                        <span class="text-gray-900 font-bold">${val.toFixed(4)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                traitsList.appendChild(div);
+            });
+        } else {
+            traitsList.innerHTML = '<div class="text-gray-500 italic">No trait data available</div>';
+        }
+
+        // --- NEW: Metadata ---
+        const metaList = document.getElementById('metadataList');
+        metaList.innerHTML = '';
+        if (data.score && data.score.metadata) {
+            const meta = data.score.metadata;
+            Object.keys(meta).sort().forEach(key => {
+                let val = meta[key];
+                if (val === null || val === undefined) val = "null";
+                const div = document.createElement('div');
+                div.className = "flex justify-between border-b border-gray-100 py-1";
+                div.innerHTML = `<span>${key}</span> <span>${val}</span>`;
+                metaList.appendChild(div);
+            });
+        } else {
+            metaList.innerHTML = '<div class="text-gray-500 italic">No metadata available</div>';
+        }
+
+        // Notes
+        renderNotes(data.notes);
+    }
+
+    function renderNotes(notes) {
+        const list = document.getElementById('notesList');
+        list.innerHTML = '';
+        if (!notes || notes.length === 0) {
+            list.innerHTML = '<p class="text-gray-400 text-sm italic">No notes yet.</p>';
+            return;
+        }
+
+        notes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = "bg-gray-50 p-3 rounded border";
+            const date = new Date(n.created_at_ms).toLocaleString();
+            div.innerHTML = `
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span class="font-bold text-gray-700">${n.author_name || 'Admin'}</span>
+                    <span>${date}</span>
+                </div>
+                <div class="text-xs font-semibold text-blue-600 mb-1">${n.category}</div>
+                <p class="text-sm text-gray-800">${n.text}</p>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function addNote() {
+        const text = document.getElementById('noteText').value;
+        const category = document.getElementById('noteCategory').value;
+        if (!text) return;
+
+        await fetch(`/bank/api/borrowers/${assessmentId}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category, text })
+        });
+
+        document.getElementById('noteText').value = '';
+        loadData(); // Reload to see new note
+    }
+
+    // Explainability toggle
+    async function loadExplainability() {
+        const method = document.getElementById('explainMethod').value;
+        const model = document.getElementById('explainModel').value;
+
+        document.getElementById('explainLoading').classList.remove('hidden');
+        document.getElementById('explainContent').classList.add('hidden');
+        document.getElementById('explainError').classList.add('hidden');
+
+        try {
+            const res = await fetch(`/api/explain/${model}/${assessmentId}?method=${method}`);
+            const data = await res.json();
+
+            if (!res.ok || data.error) {
+                document.getElementById('explainError').innerText = data.detail?.error || data.detail || 'Error loading explanation';
+                document.getElementById('explainError').classList.remove('hidden');
+                document.getElementById('explainLoading').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('explainPrediction').innerText = (data.prediction * 100).toFixed(1) + '%';
+
+            const formatName = (s) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+            const posEl = document.getElementById('explainPositive');
+            const negEl = document.getElementById('explainNegative');
+            posEl.innerHTML = '';
+            negEl.innerHTML = '';
+
+            (data.top_positive || []).forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between text-xs border-b border-gray-100 py-1';
+                li.innerHTML = `<span>${formatName(item.feature)}</span> <span class="text-red-500">+${item.impact.toFixed(3)}</span>`;
+                posEl.appendChild(li);
+            });
+
+            (data.top_negative || []).forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between text-xs border-b border-gray-100 py-1';
+                li.innerHTML = `<span>${formatName(item.feature)}</span> <span class="text-green-500">${item.impact.toFixed(3)}</span>`;
+                negEl.appendChild(li);
+            });
+
+            document.getElementById('explainContent').classList.remove('hidden');
+        } catch (err) {
+            document.getElementById('explainError').innerText = 'Failed to load explanation: ' + err.message;
+            document.getElementById('explainError').classList.remove('hidden');
+        } finally {
+            document.getElementById('explainLoading').classList.add('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        loadExplainability();
+    });
+</script>
+{% endblock %}

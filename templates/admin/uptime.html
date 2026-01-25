@@ -1,0 +1,59 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <h2>API Uptime & Health</h2>
+</div>
+
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-card-label">Uptime %</div>
+    <div class="metric-card-value">{{ "%.1f"|format(uptime.uptime_pct) }}%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Latency (p95)</div>
+    <div class="metric-card-value">{{ uptime.latency_p95_ms }} ms</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">Error Rate</div>
+    <div class="metric-card-value">{{ "%.1f"|format(uptime.error_rate_pct) }}%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">XGBoost Success Rate</div>
+    <div class="metric-card-value">{{ "%.1f"|format(uptime.xgb_success_rate) }}%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card-label">RF Success Rate</div>
+    <div class="metric-card-value">{{ "%.1f"|format(uptime.rf_success_rate) }}%</div>
+  </div>
+</div>
+
+<div class="status-card">
+  <h3>Recent API Logs</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Route</th>
+        <th>Status Code</th>
+        <th>Latency (ms)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in uptime.logs %}
+      <tr>
+        <td>{{ log.time }}</td>
+        <td>{{ log.route }}</td>
+        <td>
+          <span class="badge {% if log.status_code == 200 %}badge-ok{% else %}badge-critical{% endif %}">
+            {{ log.status_code }}
+          </span>
+        </td>
+        <td>{{ log.latency_ms }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

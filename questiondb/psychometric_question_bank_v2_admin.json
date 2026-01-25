@@ -1,0 +1,355 @@
+{
+  "title": "Psychometric Question Bank (V2 Sample)",
+  "version": "v2_sample",
+  "instruction_user_facing": "Pick the option that is most like what you would actually do.",
+  "structure": "Reduced demo bank: 15 traits × 1 item each (15 total questions). One representative item per trait.",
+  "admin_scoring_note": "Options are not ordered. Use the Answer Key (0–3). (3 = strongest/most protective behavior; 0 = weakest/highest risk behavior.)",
+  "answer_key_notice": "Do not show scoring keys to respondents.",
+  "traits": [
+    {
+      "trait_id": 1,
+      "trait_name": "Conscientiousness",
+      "trait_description": "organized, careful, dependable",
+      "items": [
+        {
+          "item_id": "1.1",
+          "prompt": "You notice a small mismatch in your daily records.",
+          "options": {
+            "A": "Mark it and continue; you will reconcile it later.",
+            "B": "Re-check the last step before sending anything out.",
+            "C": "Assume it is normal variation and keep going.",
+            "D": "Ask someone if they have seen the same issue."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "A": 2,
+            "D": 1,
+            "C": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 2,
+      "trait_name": "Impulsivity",
+      "trait_description": "acts fast without thinking; higher score = more self-regulated",
+      "items": [
+        {
+          "item_id": "2.1",
+          "prompt": "A “today-only” deal pops up while you are tired. 1",
+          "options": {
+            "A": "Buy now, but keep it within a strict limit.",
+            "B": "Add it to cart and decide tomorrow.",
+            "C": "Buy now; you can adjust later if needed.",
+            "D": "Close it and check your budget before deciding."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "D": 2,
+            "A": 1,
+            "C": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 3,
+      "trait_name": "Financial Self-Confidence",
+      "trait_description": "understands terms, asks questions",
+      "items": [
+        {
+          "item_id": "3.1",
+          "prompt": "A loan term is unclear but the process is moving fast.",
+          "options": {
+            "A": "Sign and learn later; speed matters.",
+            "B": "Ask one question, then proceed.",
+            "C": "Ask until you feel comfortable enough to explain it back.",
+            "D": "Ask a friend later and decide after that."
+          },
+          "score_map_0_to_3": {
+            "C": 3,
+            "B": 2,
+            "D": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 4,
+      "trait_name": "Planning Horizon",
+      "trait_description": "thinks ahead",
+      "items": [
+        {
+          "item_id": "4.1",
+          "prompt": "You can earn more this week, but it may create a problem next month.",
+          "options": {
+            "A": "Take the extra earnings now and handle later.",
+            "B": "Take it only if you can still cover next month.",
+            "C": "Choose stability even if it means less now.",
+            "D": "Take it and hope it works out."
+          },
+          "score_map_0_to_3": {
+            "C": 3,
+            "B": 2,
+            "A": 1,
+            "D": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 5,
+      "trait_name": "Self-Control",
+      "trait_description": "disciplined follow-through",
+      "items": [
+        {
+          "item_id": "5.1",
+          "prompt": "You promised yourself “no borrowing this month,” but a temptation appears.",
+          "options": {
+            "A": "Borrow a small amount; it won’t matter.",
+            "B": "Borrow if the reason feels justified.",
+            "C": "Try to adjust spending first, then decide.",
+            "D": "Stick to the rule unless it is a true emergency."
+          },
+          "score_map_0_to_3": {
+            "D": 3,
+            "C": 2,
+            "B": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 6,
+      "trait_name": "Locus of Control",
+      "trait_description": "ownership vs “it’s fate”",
+      "items": [
+        {
+          "item_id": "6.1",
+          "prompt": "A plan fails and you lose time.",
+          "options": {
+            "A": "Mostly bad luck; it happens.",
+            "B": "There is always something you can change next time.",
+            "C": "It was unavoidable; nothing could help. 4",
+            "D": "Partly luck, partly choices; you can adjust."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "D": 2,
+            "A": 1,
+            "C": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 7,
+      "trait_name": "Honesty",
+      "trait_description": "truthful reporting",
+      "items": [
+        {
+          "item_id": "7.1",
+          "prompt": "You can slightly exaggerate income and likely benefit.",
+          "options": {
+            "A": "Adjust it upward; everyone does it.",
+            "B": "Adjust it a little if it helps.",
+            "C": "Report honestly, but round if needed and explain.",
+            "D": "Avoid giving a number and let them decide."
+          },
+          "score_map_0_to_3": {
+            "C": 3,
+            "D": 2,
+            "B": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 8,
+      "trait_name": "Integrity / Rule Following",
+      "trait_description": "ethics under shortcuts",
+      "items": [
+        {
+          "item_id": "8.1",
+          "prompt": "Someone suggests a “small gift” to speed a process.",
+          "options": {
+            "A": "Accept; speed is worth it.",
+            "B": "Accept only if you are truly stuck.",
+            "C": "Avoid if possible and look for normal options.",
+            "D": "Refuse and use the proper process."
+          },
+          "score_map_0_to_3": {
+            "D": 3,
+            "C": 2,
+            "B": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 9,
+      "trait_name": "Obligation to Repay",
+      "trait_description": "repayment priority + initiative",
+      "items": [
+        {
+          "item_id": "9.1",
+          "prompt": "Payment is due today but you are short.",
+          "options": {
+            "A": "Say nothing and pay late.",
+            "B": "Pay what you can and communicate a clear plan early.",
+            "C": "Pay late and explain later.",
+            "D": "Pay partially and hope they understand."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "D": 2,
+            "C": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 10,
+      "trait_name": "Grit / Perseverance",
+      "trait_description": "keeps going",
+      "items": [
+        {
+          "item_id": "10.1",
+          "prompt": "A goal becomes boring.",
+          "options": {
+            "A": "Quit and switch goals.",
+            "B": "Continue only when motivated.",
+            "C": "Continue steadily with small steps.",
+            "D": "Pause for a while and see later."
+          },
+          "score_map_0_to_3": {
+            "C": 3,
+            "B": 2,
+            "D": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 11,
+      "trait_name": "Present Bias / Time Preference",
+      "trait_description": "now vs later",
+      "items": [
+        {
+          "item_id": "11.1",
+          "prompt": "You can get 100 today or 130 next month.",
+          "options": {
+            "A": "Take today; future is uncertain.",
+            "B": "Take next month unless you urgently need today.",
+            "C": "Take today, but only if you planned for it.",
+            "D": "Take next month; planning matters."
+          },
+          "score_map_0_to_3": {
+            "D": 3,
+            "B": 2,
+            "C": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 12,
+      "trait_name": "Risk Attitude",
+      "trait_description": "calibrated risk; higher score = better risk management",
+      "items": [
+        {
+          "item_id": "12.1",
+          "prompt": "Choose: sure 90 vs 50% chance of 180.",
+          "options": {
+            "A": "Choose the gamble; upside matters.",
+            "B": "Choose sure; predictability matters.",
+            "C": "Choose based on your buffer and obligations.",
+            "D": "Choose gamble when you feel confident."
+          },
+          "score_map_0_to_3": {
+            "C": 3,
+            "B": 2,
+            "D": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 13,
+      "trait_name": "Financial Decision Quality",
+      "trait_description": "systematic reasoning",
+      "items": [
+        {
+          "item_id": "13.1",
+          "prompt": "Two loans: one low monthly, one low total.",
+          "options": {
+            "A": "Choose the one with the lowest monthly payment.",
+            "B": "Choose the one with the lowest total cost and manageable risk.",
+            "C": "Choose the one that feels simpler.",
+            "D": "Choose quickly; both are fine."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "A": 2,
+            "C": 1,
+            "D": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 14,
+      "trait_name": "Spending vs Saving Orientation",
+      "trait_description": null,
+      "items": [
+        {
+          "item_id": "14.1",
+          "prompt": "You get extra income.",
+          "options": {
+            "A": "Spend it; extra money is for life.",
+            "B": "Save first, then decide on a small treat.",
+            "C": "Split: some spending, some saving.",
+            "D": "Spend most now; saving can start later."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "C": 2,
+            "D": 1,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "trait_id": 15,
+      "trait_name": "Commitment / Follow-through",
+      "trait_description": "keeps promises + communi- cates",
+      "items": [
+        {
+          "item_id": "15.1",
+          "prompt": "You promised delivery Friday; work becomes harder midweek.",
+          "options": {
+            "A": "Stay quiet and deliver late.",
+            "B": "Inform early and propose a realistic plan.",
+            "C": "Deliver part and explain after.",
+            "D": "Delay and hope it’s forgiven."
+          },
+          "score_map_0_to_3": {
+            "B": 3,
+            "C": 2,
+            "D": 1,
+            "A": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .result-container {
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeInUp 0.5s ease-out;
+  }
+
+  /* Hero Section */
+  .score-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: white;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .score-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .score-label {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+
+  .frank-score {
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .score-range {
+    font-size: 1rem;
+    opacity: 0.5;
+    margin-bottom: 1.5rem;
+  }
+
+  .score-badge {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .score-desc {
+    margin-top: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0.9;
+  }
+
+  /* Grid Layout for Traits */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .analysis-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .analysis-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    height: 100%;
+    border: 1px solid #e2e8f0;
+  }
+
+  .dark-mode .analysis-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .dark-mode .card-header {
+    border-color: #334155;
+  }
+
+  .card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .icon-green {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .icon-blue {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .dark-mode .card-title {
+    color: #f8fafc;
+  }
+
+  .trait-item {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: #f8fafc;
+    border-left: 4px solid transparent;
+  }
+
+  .dark-mode .trait-item {
+    background: #0f172a;
+  }
+
+  .trait-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .trait-item.strength {
+    border-left-color: #22c55e;
+  }
+
+  .trait-item.growth {
+    border-left-color: #3b82f6;
+  }
+
+  .trait-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    display: block;
+    color: #334155;
+  }
+
+  .dark-mode .trait-name {
+    color: #e2e8f0;
+  }
+
+  .trait-desc {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+  }
+
+  /* Utilities */
+  .text-green {
+    color: #22c55e;
+  }
+
+  .text-orange {
+    color: #f97316;
+  }
+
+  .text-red {
+    color: #ef4444;
+  }
+
+  .bg-green {
+    background-color: #22c55e;
+  }
+
+  .bg-orange {
+    background-color: #f97316;
+  }
+
+  .bg-red {
+    background-color: #ef4444;
+  }
+
+  #loading {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.2rem;
+    color: #64748b;
+  }
+
+  #err {
+    color: #ef4444;
+    text-align: center;
+    margin: 2rem;
+    padding: 1rem;
+    background: #fef2f2;
+    border-radius: 8px;
+  }
+</style>
+
+<div class="result-container">
+  <div id="loading">
+    <div style="margin-bottom: 1rem;">Calculating your FrankScore...</div>
+    <div class="spinner"></div>
+  </div>
+  <div id="err" style="display:none"></div>
+
+  <div id="resultContent" style="display:none">
+    <!-- Hero Score Card -->
+    <div class="score-card">
+      <div class="score-label">Your FrankScore</div>
+      <div id="scoreValue" class="frank-score">---</div>
+      <div class="score-range">Range: 0 - 100</div>
+      <div id="scoreBadge" class="score-badge">Calculating...</div>
+      <p id="scoreMessage" class="score-desc"></p>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="analysis-grid">
+      <!-- Strengths -->
+      <div class="analysis-card">
+        <div class="card-header">
+          <div class="card-icon icon-green">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div class="card-title">Key Strengths</div>
+        </div>
+        <div id="strengthsList"></div>
+      </div>
+
+      <!-- Growth Areas -->
+      <div class="analysis-card">
+        <div class="card-header">
+          <div class="card-icon icon-blue">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <div class="card-title">Growth Areas</div>
+        </div>
+        <div id="growthList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const assessmentId = "{{ assessment_id }}";
+
+  const TRAIT_DISPLAY_MAP = {
+    "conscientiousness": { name: "Reliability & Discipline", desc: "Consistency in meeting obligations and following through." },
+    "impulsivity": { name: "Thoughtful Action", desc: "Tendency to think before acting." },
+    "financial_self_confidence": { name: "Financial Confidence", desc: "Belief in your ability to manage finances well." },
+    "planning_horizon": { name: "Long-term Planning", desc: "Focus on future goals rather than immediate gratification." },
+    "self_control": { name: "Self-Discipline", desc: "Ability to regulate behavior and resist temptations." },
+    "locus_of_control": { name: "Personal Agency", desc: "Belief that your actions directly impact your outcomes." },
+    "honesty": { name: "Transparency", desc: "Openness and truthfulness in responses." },
+    "integrity_rule_following": { name: "Rule Compliance", desc: "Adherence to established guidelines and terms." },
+    "obligation_to_repay": { name: "Commitment to Repay", desc: "Sense of duty towards financial debts." },
+    "grit_perseverance": { name: "Perseverance", desc: "Persistence in the face of challenges." },
+    "present_bias_time_preference": { name: "Future Orientation", desc: "Prioritizing long-term benefits over short-term gains." },
+    "risk_attitude": { name: "Risk Management", desc: "Balanced approach to taking financial risks." },
+    "financial_decision_quality": { name: "Financial Decision Making", desc: "Quality and thoughtfulness of financial choices." },
+    "spending_vs_saving": { name: "Savings Orientation", desc: "Tendency to save rather than spend impulsively." },
+    "commitment_follow_through": { name: "Follow Through", desc: "Executing on promises and commitments." }
+  };
+
+  // Helper to fallback to capitalized string if not in map
+  function getTraitInfo(key) {
+    if (TRAIT_DISPLAY_MAP[key]) return TRAIT_DISPLAY_MAP[key];
+    const name = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return { name, desc: "Key behavioral indicator." };
+  }
+
+  (async () => {
+    try {
+      const res = await fetch(`/api/result?assessment_id=${encodeURIComponent(assessmentId)}`);
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+
+      // 1. Calculate FrankScore (0-100)
+      let pd = data.pd_final_hat;
+
+      // Handle null pd gracefully
+      if (pd === null || pd === undefined) {
+        console.warn("pd_final_hat is null, defaulting to 0.5");
+        pd = 0.5;
+      }
+
+      const score = Math.round((1 - pd) * 100);
+
+      // Update Hero Section
+      const scoreEl = document.getElementById("scoreValue");
+      const badgeEl = document.getElementById("scoreBadge");
+      const msgEl = document.getElementById("scoreMessage");
+      const cardEl = document.querySelector(".score-card");
+
+      // Animated count up
+      let currentScore = 0;
+      const duration = 1500;
+      const stepTime = 20;
+      const steps = duration / stepTime;
+      const increment = score / steps;
+
+      const timer = setInterval(() => {
+        currentScore += increment;
+        if (currentScore >= score) {
+          currentScore = score;
+          clearInterval(timer);
+        }
+        scoreEl.textContent = Math.round(currentScore);
+      }, stepTime);
+
+      // Status Logic
+      let status = "";
+      let message = "";
+
+      if (score >= 80) {
+        status = "Excellent";
+        cardEl.style.background = "linear-gradient(135deg, #14532d 0%, #064e3b 100%)";
+        message = "Your results indicate a very high likelihood of financial reliability. You demonstrate strong consistency, planning, and discipline.";
+      } else if (score >= 70) {
+        status = "Good";
+        cardEl.style.background = "linear-gradient(135deg, #0f172a 0%, #334155 100%)";
+        message = "You have a solid profile with many strengths. You show good potential for financial responsibility.";
+      } else if (score >= 50) {
+        status = "Fair";
+        cardEl.style.background = "linear-gradient(135deg, #9a3412 0%, #7c2d12 100%)";
+        message = "Your profile shows potential, though there are some inconsistencies. Focusing on long-term planning could improve your score.";
+      } else {
+        status = "Needs Improvement";
+        cardEl.style.background = "linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%)";
+        message = "There are significant opportunities to improve your financial habits, particularly in consistency and planning.";
+      }
+
+      badgeEl.textContent = status;
+      msgEl.textContent = message;
+
+      // 2. Process Traits
+      const traits = data.trait_final || {};
+      const traitEntries = Object.entries(traits).map(([key, val]) => ({
+        key,
+        val: Number(val),
+        ...getTraitInfo(key)
+      }));
+
+      // Sort by value (Highest score = Best strength?)
+      // Assuming 1.0 is Good for all normalized traits.
+      traitEntries.sort((a, b) => b.val - a.val);
+
+      const topTraits = traitEntries.slice(0, 5);
+      // For bottom traits, we want the ones with LOWEST scores, reversed so the worst one is top of the list?
+      // Or just the 5 lowest. Let's show 5 lowest, sorted ascending?
+      // User requested "explain ui why they have that score".
+      // "Growth Areas" implies things they are bad at.
+      const growthTraits = traitEntries.slice().sort((a, b) => a.val - b.val).slice(0, 5);
+
+
+      function renderList(items, containerId, type) {
+        const container = document.getElementById(containerId);
+        if (!items.length) {
+          container.innerHTML = "<div class='muted'>No data available</div>";
+          return;
+        }
+
+        container.innerHTML = items.map(t => `
+          <div class="trait-item ${type}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="trait-name">${t.name}</span>
+              <!-- Optional: Show score for debugging or transparency if requested, keeping it hidden for now as per "explainable" vs "raw data" -->
+            </div>
+            <span class="trait-desc">${t.desc}</span>
+          </div>
+        `).join("");
+      }
+
+      renderList(topTraits, "strengthsList", "strength");
+      renderList(growthTraits, "growthList", "growth");
+
+      // Show content
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("resultContent").style.display = "block";
+
+    } catch (e) {
+      document.getElementById("loading").style.display = "none";
+      const errEl = document.getElementById("err");
+      errEl.style.display = "block";
+      errEl.textContent = "Error loading results: " + (e.message || e);
+    }
+  })();
+</script>
+{% endblock %}
