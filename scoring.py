@@ -584,14 +584,19 @@ _XGB_FEATURE_COLUMNS = None
 
 
 def load_xgb_model() -> None:
-    """Load XGBoost model from models/xgb_model.joblib at startup."""
+    """Load XGBoost model from models/xgb_model.joblib (lazy loading - only if not already loaded)."""
     global _XGB_MODEL, _XGB_FEATURE_COLUMNS
+    # Already loaded, skip
+    if _XGB_MODEL is not None:
+        return
+    
     model_path = "models/xgb_model.joblib"
     if not os.path.exists(model_path):
         print(f"Info: XGBoost model not found at {model_path}, will use fallback scoring")
         return
     try:
         import joblib
+        print(f"Info: Loading XGBoost model (lazy load)...")
         model_data = joblib.load(model_path)
         
         if isinstance(model_data, dict):
@@ -665,6 +670,10 @@ def psychometric_pd(traits: Dict[str, float], trait_names: List[str], assessment
     if hf_result is not None:
         return hf_result
     
+    # Lazy load model if not already loaded
+    if _XGB_MODEL is None:
+        load_xgb_model()
+    
     # Fallback to local model
     if _XGB_MODEL is not None:
         try:
@@ -725,14 +734,19 @@ _RF_FEATURE_COLUMNS = None
 
 
 def load_rf_model() -> None:
-    """Load Random Forest model from models/random_forest.joblib at startup."""
+    """Load Random Forest model from models/random_forest.joblib (lazy loading - only if not already loaded)."""
     global _RF_MODEL, _RF_FEATURE_COLUMNS
+    # Already loaded, skip
+    if _RF_MODEL is not None:
+        return
+    
     model_path = "models/random_forest.joblib"
     if not os.path.exists(model_path):
         print(f"Info: Random Forest model not found at {model_path}, will use fallback scoring")
         return
     try:
         import joblib
+        print(f"Info: Loading Random Forest model (lazy load)...")
         _RF_MODEL = joblib.load(model_path)
         
         # Extract feature names from the model pipeline
@@ -769,6 +783,10 @@ def financial_pd_from_model(financial_data: Dict[str, Any], assessment_id: str =
     hf_result = _call_hf_kenya_api(assessment_id, financial_data)
     if hf_result is not None:
         return hf_result
+    
+    # Lazy load model if not already loaded
+    if _RF_MODEL is None:
+        load_rf_model()
     
     # Fallback to local model
     if _RF_MODEL is None:

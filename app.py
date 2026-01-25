@@ -83,8 +83,9 @@ def load_question_banks() -> None:
 def _startup() -> None:
     db.init_db()
     load_question_banks()
-    scoring.load_xgb_model()  # Load XGBoost model at startup
-    scoring.load_rf_model()  # Load Random Forest model at startup
+    # Models loaded lazily on first use to speed up cold starts
+    # scoring.load_xgb_model()  # Load XGBoost model at startup
+    # scoring.load_rf_model()  # Load Random Forest model at startup
 
 
 def now_ms() -> int:

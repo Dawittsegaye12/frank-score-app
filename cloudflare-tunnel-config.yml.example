@@ -1,0 +1,32 @@
+# Cloudflare Tunnel Configuration
+# Copy this file to cloudflare-tunnel-config.yml and update with your values
+
+tunnel: <YOUR_TUNNEL_ID>
+credentials-file: <PATH_TO_CREDENTIALS_FILE>
+
+ingress:
+  # Route traffic from your domain to Render app
+  - hostname: frank-score.yourdomain.com
+    service: https://frank-score-app.onrender.com
+  
+  # Optional: Route specific paths
+  # - hostname: api.yourdomain.com
+  #   service: https://frank-score-app.onrender.com/api
+  
+  # Catch-all rule (MUST be last)
+  - service: http_status:404
+
+# Optional: Additional settings
+# originRequest:
+#   connectTimeout: 30s
+#   tcpKeepAlive: 30s
+#   noHappyEyeballs: false
+#   keepAliveConnections: 100
+#   keepAliveTimeout: 90s
+#   httpHostHeader: ""
+#   originServerName: ""
+#   access:
+#     required: false
+#     teamName: ""
+#     audTag: []
+
