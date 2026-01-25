@@ -12,18 +12,11 @@ sys.path.insert(0, parent_dir)
 # Import the FastAPI app
 from app import app
 
-# Import Mangum for ASGI adapter (needed for Vercel)
-try:
-    from mangum import Mangum
-except ImportError:
-    # Fallback if mangum not available
-    print("Warning: mangum not installed, using basic handler")
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
-    
-    async def handler(request: Request):
-        """Basic handler fallback."""
-        return JSONResponse({"error": "Mangum adapter required"})
-else:
-    # Create ASGI handler with Mangum
-    handler = Mangum(app, lifespan="off")
+# Import Mangum for ASGI adapter (required for Vercel)
+from mangum import Mangum
+
+# Create ASGI handler - this is what Vercel calls
+handler = Mangum(app, lifespan="off")
+
+# Vercel expects the handler to be available at module level
+__all__ = ["handler"]
