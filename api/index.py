@@ -9,6 +9,9 @@ import os
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
+# Change to parent directory so file paths work correctly
+os.chdir(parent_dir)
+
 # Import the FastAPI app
 from app import app
 
@@ -16,7 +19,8 @@ from app import app
 from mangum import Mangum
 
 # Create ASGI handler - this is what Vercel calls
-handler = Mangum(app, lifespan="off")
+# Use lifespan="on" to allow startup events to run
+handler = Mangum(app, lifespan="on")
 
 # Vercel expects the handler to be available at module level
 __all__ = ["handler"]
