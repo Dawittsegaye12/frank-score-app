@@ -1,0 +1,51 @@
+# Vercel ignore file
+# Files/directories to exclude from Vercel deployment
+
+# Development files
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database files (ephemeral on Vercel anyway)
+*.db
+*.sqlite
+*.sqlite3
+frankscore_demo.db
+
+# Large model files (if not needed on Vercel)
+# Uncomment if using external API for ML
+# models/*.joblib
+# models/*.pkl
+
+# Documentation (optional - can be included)
+# *.md
+# docs/
+
+# Test files
+tests/
+*.test.py
+*_test.py
+
+# Logs
+*.log
+.cursor/
+
+# Temporary files
+*.tmp
+*.temp
+*.zip
+*.tar
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files (use Vercel env vars instead)
+.env
+.env.local
+.env.*.local
