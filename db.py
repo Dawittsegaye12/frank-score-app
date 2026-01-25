@@ -129,7 +129,6 @@ def init_db() -> None:
               password_hash TEXT NOT NULL,
               email TEXT,
               created_at_ms INT NOT NULL,
-              created_at_ms INT NOT NULL,
               last_login_ms INT,
               role TEXT DEFAULT 'user'
             )
