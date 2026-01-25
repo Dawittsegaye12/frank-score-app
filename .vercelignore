@@ -17,8 +17,8 @@ frankscore_demo.db
 
 # Large model files (if not needed on Vercel)
 # Uncomment if using external API for ML
-# models/*.joblib
-# models/*.pkl
+models/*.joblib
+models/*.pkl
 
 # Documentation (optional - can be included)
 # *.md
@@ -49,3 +49,14 @@ tests/
 .env
 .env.local
 .env.*.local
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Other project directories that might confuse package detection
+hf_serving/
+franckscoreapp/
+data/
+scripts/
