@@ -180,43 +180,52 @@ def load_question_banks() -> None:
                 ADMIN_SCORING_MAP[item_id] = score_map
 
 
-@app.on_event("startup")
-def _startup() -> None:
+# Initialize lazily on first request instead of startup event
+# Startup events don't work reliably in serverless environments
+_initialized = False
+
+def _ensure_initialized():
+    """Lazy initialization - called on first request"""
+    global _initialized
+    if _initialized:
+        return
     # #region agent log
-    _log("H4", "app.py:85", "Startup event triggered")
+    _log("H4", "app.py:90", "Lazy initialization triggered")
     # #endregion
     try:
         # #region agent log
-        _log("H4", "app.py:88", "Calling db.init_db()")
+        _log("H4", "app.py:94", "Calling db.init_db()")
         # #endregion
         db.init_db()
         # #region agent log
-        _log("H4", "app.py:91", "db.init_db() completed")
+        _log("H4", "app.py:97", "db.init_db() completed")
         # #endregion
         
         # #region agent log
-        _log("H4", "app.py:94", "Calling load_question_banks()")
+        _log("H4", "app.py:100", "Calling load_question_banks()")
         # #endregion
         load_question_banks()
         # #region agent log
-        _log("H4", "app.py:97", "load_question_banks() completed", {"questions_count": len(PUBLIC_QUESTIONS), "traits_count": len(TRAIT_NAMES)})
+        _log("H4", "app.py:103", "load_question_banks() completed", {"questions_count": len(PUBLIC_QUESTIONS), "traits_count": len(TRAIT_NAMES)})
         # #endregion
         
-        # Models loaded lazily on first use to speed up cold starts
-        # scoring.load_xgb_model()  # Load XGBoost model at startup
-        # scoring.load_rf_model()  # Load Random Forest model at startup
-        
+        _initialized = True
         # #region agent log
-        _log("H4", "app.py:104", "Startup event completed successfully")
+        _log("H4", "app.py:108", "Lazy initialization completed successfully")
         # #endregion
     except Exception as e:
         # #region agent log
-        _log("H4", "app.py:107", "Startup error caught (non-fatal)", error=e)
+        _log("H4", "app.py:111", "Initialization error (non-fatal)", error=e)
         # #endregion
-        # Log error but don't crash - allow app to start
-        # In serverless, some initialization might fail but app should still work
+        # Log error but don't crash - allow app to continue
         import logging
-        logging.error(f"Startup error (non-fatal): {e}")
+        logging.error(f"Initialization error (non-fatal): {e}")
+
+# Keep startup event for compatibility but make it no-op
+@app.on_event("startup")
+def _startup() -> None:
+    # No-op in serverless - use lazy initialization instead
+    pass
 
 
 def now_ms() -> int:

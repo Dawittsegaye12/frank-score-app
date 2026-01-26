@@ -91,43 +91,17 @@ try:
     # #endregion
     
     # Create ASGI handler - this is what Vercel calls
-    # Use lifespan="on" to allow startup events to run
-    mangum_handler = Mangum(app, lifespan="on")
+    # Use lifespan="off" for serverless - startup events may not work reliably
+    # We'll call startup manually if needed
+    mangum_handler = Mangum(app, lifespan="off")
     
     # #region agent log
     _log("H5", "api/index.py:62", "Handler created successfully", {"handler_type": type(mangum_handler).__name__})
     # #endregion
     
-    # Wrap handler to catch invocation errors
-    def wrapped_handler(event, context):
-        # #region agent log
-        _log("H8", "api/index.py:87", "Handler invoked", {"event_keys": list(event.keys()) if isinstance(event, dict) else "not_dict", "context_type": type(context).__name__ if context else "None"})
-        # #endregion
-        try:
-            # #region agent log
-            _log("H8", "api/index.py:91", "Calling mangum_handler")
-            # #endregion
-            result = mangum_handler(event, context)
-            # #region agent log
-            _log("H8", "api/index.py:94", "Handler call completed", {"result_type": type(result).__name__})
-            # #endregion
-            return result
-        except Exception as e:
-            # #region agent log
-            _log("H8", "api/index.py:98", "CRITICAL: Handler invocation failed", error=e)
-            # #endregion
-            # Return error response instead of crashing
-            return {
-                "statusCode": 500,
-                "headers": {"Content-Type": "application/json"},
-                "body": json.dumps({
-                    "error": "Function invocation failed",
-                    "detail": str(e),
-                    "type": type(e).__name__
-                })
-            }
-    
-    handler = wrapped_handler
+    # Use Mangum handler directly - it handles Vercel's event format
+    # Mangum automatically converts Vercel events to ASGI format
+    handler = mangum_handler
     
     # #region agent log
     _log("H1", "api/index.py:130", "Handler initialization complete")
