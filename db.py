@@ -1,17 +1,73 @@
 import json
+import os
 import sqlite3
 import time
 from contextlib import contextmanager
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-DB_PATH = "frankscore_demo.db"
+# Use /tmp on Vercel (writable), current directory locally
+# Check multiple indicators that we're on Vercel
+is_vercel = (
+    os.environ.get("VERCEL") == "1" or
+    os.environ.get("VERCEL_ENV") is not None or
+    (os.path.exists("/tmp") and os.access("/tmp", os.W_OK))
+)
+
+if is_vercel:
+    # On Vercel, use /tmp directory (writable)
+    DB_PATH = "/tmp/frankscore_demo.db"
+else:
+    # Local development
+    DB_PATH = "frankscore_demo.db"
 
 
 def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+    # Ensure directory exists (for /tmp, it always exists, but be safe)
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+    
+    # Log database path for debugging
+    try:
+        log_path = ".cursor/debug.log"
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "location": "db.py:_connect",
+                "message": "Connecting to database",
+                "data": {"db_path": DB_PATH, "vercel": os.environ.get("VERCEL"), "tmp_exists": os.path.exists("/tmp")},
+                "timestamp": int(time.time() * 1000),
+                "sessionId": "debug-session",
+                "runId": "run1",
+                "hypothesisId": "H11"
+            }) + "\n")
+    except Exception:
+        pass  # Fail silently if logging fails
+    
+    try:
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON;")
+        return conn
+    except Exception as e:
+        # Log connection error
+        try:
+            log_path = ".cursor/debug.log"
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps({
+                    "location": "db.py:_connect",
+                    "message": "Database connection failed",
+                    "error": str(e),
+                    "data": {"db_path": DB_PATH, "cwd": os.getcwd()},
+                    "timestamp": int(time.time() * 1000),
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "H11"
+                }) + "\n")
+        except Exception:
+            pass
+        raise
 
 
 @contextmanager

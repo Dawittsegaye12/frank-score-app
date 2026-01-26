@@ -177,11 +177,26 @@ class LoginRequest(BaseModel):
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    # #region agent log
+    _log("H11", "app.py:163", "Health check called")
+    # #endregion
     try:
+        # Ensure database is initialized
+        db.init_db()
+        # #region agent log
+        _log("H11", "app.py:168", "Database initialized in health check")
+        # #endregion
+        
         with db.get_conn() as conn:
             conn.execute("SELECT 1").fetchone()
+        # #region agent log
+        _log("H11", "app.py:172", "Health check successful")
+        # #endregion
         return {"ok": True, "db": "ok"}
     except Exception as e:
+        # #region agent log
+        _log("H11", "app.py:176", "Health check failed", error=e)
+        # #endregion
         return {"ok": False, "db": "error", "error": str(e)}
 
 
