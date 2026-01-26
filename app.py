@@ -3,23 +3,120 @@ import os
 import random
 import time
 import uuid
+import traceback
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field
+# #region agent log
+import sys
+LOG_PATH = os.path.join(os.getcwd(), ".cursor", "debug.log")
+def _log(hypothesis_id, location, message, data=None, error=None):
+    try:
+        entry = {
+            "timestamp": int(datetime.now().timestamp() * 1000),
+            "location": location,
+            "message": message,
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "data": data or {},
+        }
+        if error:
+            entry["error"] = str(error)
+            entry["traceback"] = traceback.format_exc()
+        log_str = json.dumps(entry)
+        # Write to file (for local debugging)
+        try:
+            os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+            with open(LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(log_str + "\n")
+        except Exception:
+            pass
+        # Also print to stderr (captured by Vercel logs)
+        print(f"[DEBUG] {log_str}", file=sys.stderr, flush=True)
+    except Exception:
+        pass
+# #endregion
 
-import db
-import scoring
-import admin_data_dual_models as admin_mock_data
-from services import scoring_api
+try:
+    # #region agent log
+    _log("H1", "app.py:30", "Starting app module imports", {"cwd": os.getcwd()})
+    # #endregion
+    
+    from fastapi import FastAPI, HTTPException, Request
+    from fastapi.responses import HTMLResponse, JSONResponse
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+    from pydantic import BaseModel, Field
+    
+    # #region agent log
+    _log("H1", "app.py:40", "FastAPI imports successful")
+    # #endregion
+    
+    # #region agent log
+    _log("H1", "app.py:43", "About to import db module")
+    # #endregion
+    import db
+    # #region agent log
+    _log("H1", "app.py:46", "db module imported")
+    # #endregion
+    
+    # #region agent log
+    _log("H1", "app.py:48", "About to import scoring module")
+    # #endregion
+    import scoring
+    # #region agent log
+    _log("H1", "app.py:51", "scoring module imported")
+    # #endregion
+    
+    # #region agent log
+    _log("H1", "app.py:53", "About to import admin_data_dual_models")
+    # #endregion
+    import admin_data_dual_models as admin_mock_data
+    # #region agent log
+    _log("H1", "app.py:56", "admin_data_dual_models imported")
+    # #endregion
+    
+    # #region agent log
+    _log("H1", "app.py:58", "About to import services.scoring_api")
+    # #endregion
+    from services import scoring_api
+    # #region agent log
+    _log("H1", "app.py:61", "services.scoring_api imported")
+    # #endregion
+    
+    # #region agent log
+    _log("H6", "app.py:64", "Creating FastAPI app instance")
+    # #endregion
+    app = FastAPI(title="frankscore_demo")
+    
+    # #region agent log
+    _log("H6", "app.py:67", "Initializing Jinja2Templates", {"templates_dir": "templates", "exists": os.path.exists("templates")})
+    # #endregion
+    templates = Jinja2Templates(directory="templates")
+    # #region agent log
+    _log("H6", "app.py:70", "Jinja2Templates initialized")
+    # #endregion
+    
+    # #region agent log
+    _log("H7", "app.py:73", "Mounting StaticFiles", {"static_dir": "static", "exists": os.path.exists("static")})
+    # #endregion
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    # #region agent log
+    _log("H7", "app.py:76", "StaticFiles mounted successfully")
+    # #endregion
+    
+    # #region agent log
+    _log("H1", "app.py:78", "App module initialization complete")
+    # #endregion
 
-
-app = FastAPI(title="frankscore_demo")
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+except Exception as e:
+    # #region agent log
+    _log("H1", "app.py:81", "CRITICAL: App module import/initialization failed", error=e)
+    # #endregion
+    # Create minimal app to prevent complete failure
+    app = FastAPI(title="frankscore_demo_error")
+    raise
 
 
 # Question bank data (loaded at startup)
@@ -35,6 +132,10 @@ def load_question_banks() -> None:
     
     public_path = "questiondb/psychometric_question_bank_v2_public.json"
     admin_path = "questiondb/psychometric_question_bank_v2_admin.json"
+    
+    # #region agent log
+    _log("H2", "app.py:110", "load_question_banks called", {"cwd": os.getcwd(), "public_path": public_path, "public_exists": os.path.exists(public_path), "admin_path": admin_path, "admin_exists": os.path.exists(admin_path), "questiondb_exists": os.path.exists("questiondb")})
+    # #endregion
     
     # Load public JSON (for /api/questions)
     if os.path.exists(public_path):
@@ -81,13 +182,37 @@ def load_question_banks() -> None:
 
 @app.on_event("startup")
 def _startup() -> None:
+    # #region agent log
+    _log("H4", "app.py:85", "Startup event triggered")
+    # #endregion
     try:
+        # #region agent log
+        _log("H4", "app.py:88", "Calling db.init_db()")
+        # #endregion
         db.init_db()
+        # #region agent log
+        _log("H4", "app.py:91", "db.init_db() completed")
+        # #endregion
+        
+        # #region agent log
+        _log("H4", "app.py:94", "Calling load_question_banks()")
+        # #endregion
         load_question_banks()
+        # #region agent log
+        _log("H4", "app.py:97", "load_question_banks() completed", {"questions_count": len(PUBLIC_QUESTIONS), "traits_count": len(TRAIT_NAMES)})
+        # #endregion
+        
         # Models loaded lazily on first use to speed up cold starts
         # scoring.load_xgb_model()  # Load XGBoost model at startup
         # scoring.load_rf_model()  # Load Random Forest model at startup
+        
+        # #region agent log
+        _log("H4", "app.py:104", "Startup event completed successfully")
+        # #endregion
     except Exception as e:
+        # #region agent log
+        _log("H4", "app.py:107", "Startup error caught (non-fatal)", error=e)
+        # #endregion
         # Log error but don't crash - allow app to start
         # In serverless, some initialization might fail but app should still work
         import logging
