@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import traceback
+import asyncio
 
 # Early logging setup - runs before any other code
 def _early_log(message, error=None):
@@ -68,10 +69,15 @@ def _create_handler():
         from mangum import Mangum
         _early_log("Mangum imported successfully")
         
-        # Create handler
+        # Create handler with lifespan="off" for serverless
         _early_log("Creating Mangum handler...")
         mangum_handler = Mangum(app, lifespan="off")
         _early_log("Mangum handler created successfully")
+        _early_log(f"Mangum handler type: {type(mangum_handler).__name__}")
+        
+        # Check if handler is callable
+        if not callable(mangum_handler):
+            raise TypeError(f"Mangum handler is not callable: {type(mangum_handler)}")
         
         _handler = mangum_handler
         _early_log("Handler initialization complete")
@@ -100,29 +106,43 @@ def _create_handler():
 def handler(event, context):
     """Main handler - creates handler lazily on first call"""
     try:
+        _early_log("=" * 50)
         _early_log("Handler invoked - getting handler instance...")
-        _early_log(f"Event type: {type(event).__name__}, Context type: {type(context).__name__ if context else 'None'}")
+        _early_log(f"Event type: {type(event).__name__}")
+        _early_log(f"Context type: {type(context).__name__ if context else 'None'}")
         if isinstance(event, dict):
             _early_log(f"Event keys: {list(event.keys())[:10]}")  # First 10 keys
+            if "httpMethod" in event:
+                _early_log(f"HTTP Method: {event.get('httpMethod')}")
+            if "path" in event:
+                _early_log(f"Path: {event.get('path')}")
         
         h = _create_handler()
         _early_log(f"Handler instance obtained, type: {type(h).__name__}")
+        _early_log(f"Handler is callable: {callable(h)}")
         _early_log("Calling handler...")
         
-        # Mangum handler should handle async/sync automatically
-        # Just call it directly - Mangum will handle the conversion
+        # Call the handler - Mangum handles async internally
         result = h(event, context)
         
-        # If result is a coroutine (async), we need to handle it
+        # Check if result is a coroutine (async function result)
         import inspect
         if inspect.iscoroutine(result):
             _early_log("Handler returned coroutine - running with asyncio...")
-            import asyncio
-            result = asyncio.run(result)
+            # Create new event loop for this invocation
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(result)
+            _early_log("Coroutine completed")
         
         _early_log(f"Handler call completed, result type: {type(result).__name__}")
         if isinstance(result, dict):
             _early_log(f"Result keys: {list(result.keys())}")
+            if "statusCode" in result:
+                _early_log(f"Status code: {result.get('statusCode')}")
         
         return result
     except Exception as e:
