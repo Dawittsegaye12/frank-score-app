@@ -130,8 +130,11 @@ try:
     handler = wrapped_handler
     
     # #region agent log
-    _log("H1", "api/index.py:110", "Handler initialization complete")
+    _log("H1", "api/index.py:130", "Handler initialization complete")
     # #endregion
+    
+    # Vercel expects the handler to be available at module level
+    __all__ = ["handler"]
 
 except Exception as e:
     # #region agent log
@@ -148,3 +151,4 @@ except Exception as e:
             "body": json.dumps({"error": "Function initialization failed", "detail": str(e)})
         }
     handler = error_handler
+    __all__ = ["handler"]
