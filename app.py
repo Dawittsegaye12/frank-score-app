@@ -291,11 +291,18 @@ class LoginRequest(BaseModel):
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    # #region agent log
+    _log("H8", "app.py:292", "Health endpoint called")
+    # #endregion
+    _ensure_initialized()  # Lazy initialization
     try:
         with db.get_conn() as conn:
             conn.execute("SELECT 1").fetchone()
         return {"ok": True, "db": "ok"}
     except Exception as e:
+        # #region agent log
+        _log("H8", "app.py:300", "Health check failed", error=e)
+        # #endregion
         return {"ok": False, "db": "error", "error": str(e)}
 
 
