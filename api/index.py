@@ -87,12 +87,24 @@ try:
     _log("H2", "api/index.py:42", "Changed working directory", {"new_cwd": os.getcwd(), "templates_exists": os.path.exists("templates"), "static_exists": os.path.exists("static"), "questiondb_exists": os.path.exists("questiondb")})
     # #endregion
     
-    # Import the FastAPI app
+    # Import the FastAPI app with better error handling
     # #region agent log
-    _log("H1", "api/index.py:46", "About to import app module")
+    _log("H1", "api/index.py:92", "About to import app module")
     # #endregion
     
-    from app import app
+    try:
+        _early_log("Attempting to import app module...")
+        from app import app
+        _early_log("App module imported successfully")
+    except Exception as import_error:
+        _early_log(f"CRITICAL: Failed to import app module: {str(import_error)}", import_error)
+        # Create a minimal error app
+        from fastapi import FastAPI
+        app = FastAPI()
+        @app.get("/")
+        def error_root():
+            return {"error": "App import failed", "detail": str(import_error)}
+        _early_log("Created minimal error app as fallback")
     
     # #region agent log
     _log("H1", "api/index.py:50", "App module imported successfully", {"app_type": type(app).__name__})
