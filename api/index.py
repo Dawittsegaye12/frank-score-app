@@ -101,10 +101,29 @@ def handler(event, context):
     """Main handler - creates handler lazily on first call"""
     try:
         _early_log("Handler invoked - getting handler instance...")
+        _early_log(f"Event type: {type(event).__name__}, Context type: {type(context).__name__ if context else 'None'}")
+        if isinstance(event, dict):
+            _early_log(f"Event keys: {list(event.keys())[:10]}")  # First 10 keys
+        
         h = _create_handler()
-        _early_log("Handler instance obtained, calling it...")
+        _early_log(f"Handler instance obtained, type: {type(h).__name__}")
+        _early_log("Calling handler...")
+        
+        # Mangum handler should handle async/sync automatically
+        # Just call it directly - Mangum will handle the conversion
         result = h(event, context)
+        
+        # If result is a coroutine (async), we need to handle it
+        import inspect
+        if inspect.iscoroutine(result):
+            _early_log("Handler returned coroutine - running with asyncio...")
+            import asyncio
+            result = asyncio.run(result)
+        
         _early_log(f"Handler call completed, result type: {type(result).__name__}")
+        if isinstance(result, dict):
+            _early_log(f"Result keys: {list(result.keys())}")
+        
         return result
     except Exception as e:
         _early_log(f"CRITICAL: Handler invocation failed: {str(e)}", e)

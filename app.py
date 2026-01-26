@@ -91,20 +91,29 @@ try:
     app = FastAPI(title="frankscore_demo")
     
     # #region agent log
-    _log("H6", "app.py:67", "Initializing Jinja2Templates", {"templates_dir": "templates", "exists": os.path.exists("templates")})
+    _log("H6", "app.py:94", "Initializing Jinja2Templates", {"templates_dir": "templates", "exists": os.path.exists("templates")})
     # #endregion
-    templates = Jinja2Templates(directory="templates")
+    # Only initialize templates if directory exists (graceful degradation)
+    if os.path.exists("templates"):
+        templates = Jinja2Templates(directory="templates")
+    else:
+        _log("H6", "app.py:98", "WARNING: templates directory not found, templates will not work")
+        templates = None  # Will need to handle this in routes
     # #region agent log
-    _log("H6", "app.py:70", "Jinja2Templates initialized")
+    _log("H6", "app.py:101", "Jinja2Templates initialized")
     # #endregion
     
     # #region agent log
-    _log("H7", "app.py:73", "Mounting StaticFiles", {"static_dir": "static", "exists": os.path.exists("static")})
+    _log("H7", "app.py:104", "Mounting StaticFiles", {"static_dir": "static", "exists": os.path.exists("static")})
     # #endregion
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-    # #region agent log
-    _log("H7", "app.py:76", "StaticFiles mounted successfully")
-    # #endregion
+    # Only mount static files if directory exists (graceful degradation)
+    if os.path.exists("static"):
+        app.mount("/static", StaticFiles(directory="static"), name="static")
+        # #region agent log
+        _log("H7", "app.py:109", "StaticFiles mounted successfully")
+        # #endregion
+    else:
+        _log("H7", "app.py:112", "WARNING: static directory not found, static files will not work")
     
     # #region agent log
     _log("H1", "app.py:78", "App module initialization complete")
