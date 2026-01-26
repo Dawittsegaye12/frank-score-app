@@ -9,7 +9,6 @@ import traceback
 from datetime import datetime
 
 # #region agent log
-import sys
 LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".cursor", "debug.log")
 def _log(hypothesis_id, location, message, data=None, error=None):
     try:
