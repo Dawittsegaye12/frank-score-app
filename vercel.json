@@ -1,6 +1,10 @@
 {
-  "buildCommand": "echo 'No build needed for serverless functions'",
   "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.10"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
