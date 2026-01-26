@@ -3,6 +3,7 @@ import os
 import random
 import time
 import uuid
+import traceback
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -15,6 +16,31 @@ import db
 import scoring
 import admin_data_dual_models as admin_mock_data
 from services import scoring_api
+
+# Debug logging function
+def _log(hypothesis_id: str, location: str, message: str, data: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None):
+    """Write debug log to file."""
+    try:
+        log_entry = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "timestamp": int(time.time() * 1000),
+        }
+        if data:
+            log_entry["data"] = data
+        if error:
+            log_entry["error"] = str(error)
+            log_entry["traceback"] = traceback.format_exc()
+        
+        log_path = ".cursor/debug.log"
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception:
+        pass  # Fail silently if logging fails
 
 
 app = FastAPI(title="frankscore_demo")
@@ -222,75 +248,66 @@ def api_signup(req: SignupRequest) -> Any:
     """Create a new user account."""
     import hashlib
     
-    # Check if username already exists
-    existing = db.get_user_by_username(req.username)
-    if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # Hash password
-    password_hash = hashlib.sha256(req.password.encode()).hexdigest()
-    
-    # Create user
-    user_id = db.create_user(req.username, password_hash, req.email)
-    
-    return {"ok": True, "user_id": user_id, "message": "Account created successfully"}
-
-
-def _seed_default_users():
-    """Seed default users if database is empty (for Vercel ephemeral databases)."""
-    import hashlib
     # #region agent log
-    _log("H9", "app.py:242", "Checking if users need to be seeded")
+    _log("H10", "app.py:221", "Signup attempt", {"username": req.username, "email": req.email})
     # #endregion
+    
     try:
-        # Check if any users exist
-        with db.get_conn() as conn:
-            user_count = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()["count"]
-            # #region agent log
-            _log("H9", "app.py:248", f"User count in database: {user_count}")
-            # #endregion
-            
-            if user_count == 0:
-                # #region agent log
-                _log("H9", "app.py:251", "No users found - seeding default users")
-                # #endregion
-                # Create default users
-                import hashlib
-                default_users = [
-                    ("alice", "password123", "alice@example.com"),
-                    ("bob", "password123", "bob@example.com"),
-                ]
-                for username, password, email in default_users:
-                    password_hash = hashlib.sha256(password.encode()).hexdigest()
-                    db.create_user(username, password_hash, email)
-                    # #region agent log
-                    _log("H9", "app.py:260", f"Created default user: {username}")
-                    # #endregion
-                # #region agent log
-                _log("H9", "app.py:263", "Default users seeded successfully")
-                # #endregion
-    except Exception as e:
+        # Ensure database is initialized
+        db.init_db()
         # #region agent log
-        _log("H9", "app.py:266", "Error seeding users (non-fatal)", error=e)
+        _log("H10", "app.py:228", "Database initialized for signup")
         # #endregion
-        pass  # Non-fatal - allow app to continue
+        
+        # Check if username already exists
+        existing = db.get_user_by_username(req.username)
+        # #region agent log
+        _log("H10", "app.py:232", f"Username check result: {existing is not None}")
+        # #endregion
+        if existing:
+            # #region agent log
+            _log("H10", "app.py:235", "Signup failed: username already exists")
+            # #endregion
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        # Hash password
+        password_hash = hashlib.sha256(req.password.encode()).hexdigest()
+        # #region agent log
+        _log("H10", "app.py:241", "Password hashed")
+        # #endregion
+        
+        # Create user
+        user_id = db.create_user(req.username, password_hash, req.email)
+        # #region agent log
+        _log("H10", "app.py:245", "User created successfully", {"user_id": user_id})
+        # #endregion
+        
+        return {"ok": True, "user_id": user_id, "message": "Account created successfully"}
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        # #region agent log
+        _log("H10", "app.py:252", "Signup error", error=e)
+        # #endregion
+        raise HTTPException(status_code=500, detail=f"Error creating account: {str(e)}")
+
 
 def _seed_default_users():
     """Seed default users if database is empty (for Vercel ephemeral databases)."""
     # #region agent log
-    _log("H9", "app.py:242", "Checking if users need to be seeded")
+    _log("H9", "app.py:259", "Checking if users need to be seeded")
     # #endregion
     try:
         # Check if any users exist
         with db.get_conn() as conn:
             user_count = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()["count"]
             # #region agent log
-            _log("H9", "app.py:248", f"User count in database: {user_count}")
+            _log("H9", "app.py:265", f"User count in database: {user_count}")
             # #endregion
             
             if user_count == 0:
                 # #region agent log
-                _log("H9", "app.py:251", "No users found - seeding default users")
+                _log("H9", "app.py:268", "No users found - seeding default users")
                 # #endregion
                 # Create default users
                 import hashlib
@@ -302,14 +319,14 @@ def _seed_default_users():
                     password_hash = hashlib.sha256(password.encode()).hexdigest()
                     db.create_user(username, password_hash, email)
                     # #region agent log
-                    _log("H9", "app.py:260", f"Created default user: {username}")
+                    _log("H9", "app.py:277", f"Created default user: {username}")
                     # #endregion
                 # #region agent log
-                _log("H9", "app.py:263", "Default users seeded successfully")
+                _log("H9", "app.py:280", "Default users seeded successfully")
                 # #endregion
     except Exception as e:
         # #region agent log
-        _log("H9", "app.py:266", "Error seeding users (non-fatal)", error=e)
+        _log("H9", "app.py:283", "Error seeding users (non-fatal)", error=e)
         # #endregion
         pass  # Non-fatal - allow app to continue
 
@@ -319,42 +336,53 @@ def api_login(req: LoginRequest) -> Any:
     import hashlib
     
     # #region agent log
-    _log("H9", "app.py:273", "Login attempt", {"username": req.username})
+    _log("H9", "app.py:290", "Login attempt", {"username": req.username})
     # #endregion
     
-    # Ensure database is initialized and seeded
-    db.init_db()  # Ensure DB is initialized
-    _seed_default_users()  # Seed users if empty
-    
-    # Get user
-    user = db.get_user_by_username(req.username)
-    # #region agent log
-    _log("H9", "app.py:281", f"User lookup result: {user is not None}")
-    # #endregion
-    if not user:
+    try:
+        # Ensure database is initialized and seeded
+        db.init_db()  # Ensure DB is initialized
         # #region agent log
-        _log("H9", "app.py:284", "Login failed: user not found")
+        _log("H9", "app.py:295", "Database initialized for login")
         # #endregion
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    
-    # Verify password
-    password_hash = hashlib.sha256(req.password.encode()).hexdigest()
-    # #region agent log
-    _log("H9", "app.py:290", "Password verification", {"password_match": user["password_hash"] == password_hash})
-    # #endregion
-    if user["password_hash"] != password_hash:
+        _seed_default_users()  # Seed users if empty
+        
+        # Get user
+        user = db.get_user_by_username(req.username)
         # #region agent log
-        _log("H9", "app.py:293", "Login failed: password mismatch")
+        _log("H9", "app.py:301", f"User lookup result: {user is not None}")
         # #endregion
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    
-    # Update last login
-    db.update_last_login(user["id"])
-    # #region agent log
-    _log("H9", "app.py:299", "Login successful", {"user_id": user["id"], "username": user["username"]})
-    # #endregion
-    
-    return {"ok": True, "user_id": user["id"], "username": user["username"]}
+        if not user:
+            # #region agent log
+            _log("H9", "app.py:304", "Login failed: user not found")
+            # #endregion
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        # Verify password
+        password_hash = hashlib.sha256(req.password.encode()).hexdigest()
+        # #region agent log
+        _log("H9", "app.py:310", "Password verification", {"password_match": user["password_hash"] == password_hash})
+        # #endregion
+        if user["password_hash"] != password_hash:
+            # #region agent log
+            _log("H9", "app.py:313", "Login failed: password mismatch")
+            # #endregion
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        # Update last login
+        db.update_last_login(user["id"])
+        # #region agent log
+        _log("H9", "app.py:319", "Login successful", {"user_id": user["id"], "username": user["username"]})
+        # #endregion
+        
+        return {"ok": True, "user_id": user["id"], "username": user["username"]}
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        # #region agent log
+        _log("H9", "app.py:326", "Login error", error=e)
+        # #endregion
+        raise HTTPException(status_code=500, detail=f"Error during login: {str(e)}")
 
 
 @app.post("/api/start", response_model=StartResponse)
