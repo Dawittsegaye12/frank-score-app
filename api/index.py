@@ -21,6 +21,21 @@ def _early_log(message, error=None):
 
 _early_log("api/index.py: Module loading started")
 
+# Try to import with better error handling
+def safe_import(module_name, from_module=None):
+    """Safely import a module and log any errors"""
+    try:
+        if from_module:
+            _early_log(f"Importing {module_name} from {from_module}")
+            module = __import__(from_module, fromlist=[module_name])
+            return getattr(module, module_name)
+        else:
+            _early_log(f"Importing module {module_name}")
+            return __import__(module_name)
+    except Exception as e:
+        _early_log(f"FAILED to import {module_name}: {str(e)}", e)
+        raise
+
 # #region agent log
 LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".cursor", "debug.log")
 def _log(hypothesis_id, location, message, data=None, error=None):
