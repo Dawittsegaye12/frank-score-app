@@ -1,110 +1,53 @@
-# Vercel Deployment Status & URLs
+# Vercel Deployment Status
 
-## 📍 Your Deployment URLs
+## Current Configuration ✅
 
-Based on your Vercel project name "frank-score-app", your URLs should be:
+### Requirements (requirements.txt)
+- ✅ fastapi==0.115.6
+- ✅ mangum>=0.17.0
+- ✅ **uvicorn>=0.24.0** (ADDED - this was the missing dependency)
+- ✅ pydantic==2.9.2
+- ✅ python-multipart==0.0.9
+- ✅ jinja2==3.1.4
+- ✅ joblib>=1.3.0
+- ✅ numpy>=1.24.0
+- ✅ pandas>=1.5.0
+- ✅ requests>=2.31.0
 
-### Production URL (Main):
-```
-https://frank-score-app.vercel.app
-```
+### Vercel Configuration (vercel.json)
+- ✅ Install Command: `pip install -r requirements.txt`
+- ✅ Rewrites: All routes → `/api/index`
+- ✅ No buildCommand (Vercel handles automatically)
 
-### Deployment-Specific URLs:
-Based on your deployment ID `CxqdubSzcqq23jPMVSSSL9yocVC4`:
-```
-https://frank-score-app-CxqdubSzcqq23jPMVSSSL9yocVC4.vercel.app
-```
+### Handler (api/index.py)
+- ✅ Lazy initialization
+- ✅ Error handling with detailed logging
+- ✅ Async/coroutine support
+- ✅ Fallback error handler
 
-### Alternative URLs (if project name differs):
-- `https://frankscoreapp.vercel.app`
-- `https://frankscore.vercel.app`
+## What Was Fixed
 
-## 🔍 How to Find Your Exact URL
+1. **Added uvicorn** - Mangum requires uvicorn to run ASGI apps
+2. **Simplified vercel.json** - Removed buildCommand to let Vercel handle it
+3. **Improved error handling** - Better logging and error messages
 
-1. **Go to Vercel Dashboard:**
-   - https://vercel.com/dashboard
-   - Select your project: "frank-score-app"
+## Next Steps
 
-2. **Check Deployment:**
-   - Go to "Deployments" tab
-   - Click on the latest deployment
-   - Look for "Domains" section
-   - You'll see the exact URL(s)
+1. **Deploy** - Click "Deploy" button in Vercel dashboard
+2. **Wait for build** - Usually takes 2-5 minutes
+3. **Test** - Visit `https://frank-score-app.vercel.app/health`
+4. **Expected result**: `{"ok": true, "db": "ok"}`
 
-3. **Or Check Project Settings:**
-   - Project → Settings → Domains
-   - Shows all assigned domains
+## If It Still Fails
 
-## ✅ What's Deployed
+Check Vercel Function Logs for:
+- `[DEBUG]` entries showing initialization steps
+- Any error messages with full traceback
+- Whether uvicorn was installed (check Build Logs)
 
-### Files Included:
-- ✅ `app.py` - Main FastAPI application
-- ✅ `api/index.py` - Vercel serverless function entry point
-- ✅ `db.py` - Database operations
-- ✅ `scoring.py` - Scoring engine (without ML models)
-- ✅ `templates/` - HTML templates
-- ✅ `static/` - CSS, JS files
-- ✅ `questiondb/` - Question bank JSON files
-- ✅ `vercel.json` - Deployment configuration
-- ✅ `requirements.txt` - Python dependencies (Vercel-compatible)
-- ✅ `pyproject.toml` - Python 3.10 specification
+## Troubleshooting
 
-### Files Excluded (by .vercelignore):
-- ❌ `models/*.joblib` - ML models (too large, use Render)
-- ❌ `*.db` - Database files
-- ❌ `__pycache__/` - Python cache
-- ❌ `.venv/` - Virtual environment
-
-## ⚠️ Important Notes
-
-### ML Models:
-- **Not deployed on Vercel** (too large for 50MB limit)
-- **Use Render for ML predictions**: `https://frank-score-app.onrender.com`
-- Vercel handles frontend and lightweight APIs
-- Heavy ML operations should proxy to Render
-
-### Database:
-- SQLite is **ephemeral** on Vercel (resets on deploy)
-- Consider using Render database or external PostgreSQL
-
-## 🧪 Test Your Deployment
-
-### 1. Health Check:
-```bash
-curl https://frank-score-app.vercel.app/health
-```
-Should return: `{"ok": true, "db": "ok"}`
-
-### 2. Home Page:
-```bash
-curl https://frank-score-app.vercel.app/
-```
-Should return HTML (login page)
-
-### 3. API Endpoints:
-```bash
-# Questions API
-curl https://frank-score-app.vercel.app/api/questions
-
-# Health check
-curl https://frank-score-app.vercel.app/health
-```
-
-## 📊 Deployment Status
-
-Check in Vercel Dashboard:
-- **Status**: Should be "Ready" (green) or "Building" (yellow)
-- **Logs**: Check for any errors
-- **Functions**: Should show `api/index.py` as a serverless function
-
-## 🔗 Quick Access
-
-**Vercel Dashboard:**
-- Project: https://vercel.com/abeladiss123-1756s-projects/frank-score-app
-- Deployments: Check latest deployment status
-- Logs: View runtime logs
-
-**Your App:**
-- Production: `https://frank-score-app.vercel.app`
-- (Check Vercel dashboard for exact URL)
-
+If you see errors:
+1. Check Build Logs → Verify uvicorn was installed
+2. Check Function Logs → See `[DEBUG]` entries and errors
+3. Share the exact error message for targeted fix
