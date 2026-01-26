@@ -8,6 +8,19 @@ import json
 import traceback
 from datetime import datetime
 
+# Early logging setup - runs before any other code
+def _early_log(message, error=None):
+    """Early logging that works even if other imports fail"""
+    try:
+        log_msg = f"[EARLY_DEBUG] {message}"
+        if error:
+            log_msg += f" | ERROR: {str(error)} | TRACEBACK: {traceback.format_exc()}"
+        print(log_msg, file=sys.stderr, flush=True)
+    except Exception:
+        pass
+
+_early_log("api/index.py: Module loading started")
+
 # #region agent log
 LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".cursor", "debug.log")
 def _log(hypothesis_id, location, message, data=None, error=None):
@@ -79,28 +92,59 @@ try:
     
     # Create ASGI handler - this is what Vercel calls
     # Use lifespan="on" to allow startup events to run
-    handler = Mangum(app, lifespan="on")
+    mangum_handler = Mangum(app, lifespan="on")
     
     # #region agent log
-    _log("H5", "api/index.py:62", "Handler created successfully", {"handler_type": type(handler).__name__})
+    _log("H5", "api/index.py:62", "Handler created successfully", {"handler_type": type(mangum_handler).__name__})
     # #endregion
     
-    # Vercel expects the handler to be available at module level
-    __all__ = ["handler"]
+    # Wrap handler to catch invocation errors
+    def wrapped_handler(event, context):
+        # #region agent log
+        _log("H8", "api/index.py:87", "Handler invoked", {"event_keys": list(event.keys()) if isinstance(event, dict) else "not_dict", "context_type": type(context).__name__ if context else "None"})
+        # #endregion
+        try:
+            # #region agent log
+            _log("H8", "api/index.py:91", "Calling mangum_handler")
+            # #endregion
+            result = mangum_handler(event, context)
+            # #region agent log
+            _log("H8", "api/index.py:94", "Handler call completed", {"result_type": type(result).__name__})
+            # #endregion
+            return result
+        except Exception as e:
+            # #region agent log
+            _log("H8", "api/index.py:98", "CRITICAL: Handler invocation failed", error=e)
+            # #endregion
+            # Return error response instead of crashing
+            return {
+                "statusCode": 500,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({
+                    "error": "Function invocation failed",
+                    "detail": str(e),
+                    "type": type(e).__name__
+                })
+            }
+    
+    handler = wrapped_handler
     
     # #region agent log
-    _log("H1", "api/index.py:67", "Handler initialization complete")
+    _log("H1", "api/index.py:110", "Handler initialization complete")
     # #endregion
 
 except Exception as e:
     # #region agent log
-    _log("H1", "api/index.py:70", "CRITICAL: Handler initialization failed", error=e)
+    _log("H1", "api/index.py:113", "CRITICAL: Handler initialization failed", error=e)
     # #endregion
     # Create a minimal error handler to prevent complete failure
     def error_handler(event, context):
+        # #region agent log
+        _log("H1", "api/index.py:117", "Error handler invoked", {"init_error": str(e)})
+        # #endregion
         return {
             "statusCode": 500,
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "Function initialization failed", "detail": str(e)})
         }
     handler = error_handler
-    raise
