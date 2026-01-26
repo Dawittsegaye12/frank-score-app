@@ -3,129 +3,23 @@ import os
 import random
 import time
 import uuid
-import traceback
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# #region agent log
-import sys
-LOG_PATH = os.path.join(os.getcwd(), ".cursor", "debug.log")
-def _log(hypothesis_id, location, message, data=None, error=None):
-    try:
-        entry = {
-            "timestamp": int(datetime.now().timestamp() * 1000),
-            "location": location,
-            "message": message,
-            "sessionId": "debug-session",
-            "runId": "run1",
-            "hypothesisId": hypothesis_id,
-            "data": data or {},
-        }
-        if error:
-            entry["error"] = str(error)
-            entry["traceback"] = traceback.format_exc()
-        log_str = json.dumps(entry)
-        # Write to file (for local debugging)
-        try:
-            os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-            with open(LOG_PATH, "a", encoding="utf-8") as f:
-                f.write(log_str + "\n")
-        except Exception:
-            pass
-        # Also print to stderr (captured by Vercel logs)
-        print(f"[DEBUG] {log_str}", file=sys.stderr, flush=True)
-    except Exception:
-        pass
-# #endregion
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 
-try:
-    # #region agent log
-    _log("H1", "app.py:30", "Starting app module imports", {"cwd": os.getcwd()})
-    # #endregion
-    
-    from fastapi import FastAPI, HTTPException, Request
-    from fastapi.responses import HTMLResponse, JSONResponse
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.templating import Jinja2Templates
-    from pydantic import BaseModel, Field
-    
-    # #region agent log
-    _log("H1", "app.py:40", "FastAPI imports successful")
-    # #endregion
-    
-    # #region agent log
-    _log("H1", "app.py:43", "About to import db module")
-    # #endregion
-    import db
-    # #region agent log
-    _log("H1", "app.py:46", "db module imported")
-    # #endregion
-    
-    # #region agent log
-    _log("H1", "app.py:48", "About to import scoring module")
-    # #endregion
-    import scoring
-    # #region agent log
-    _log("H1", "app.py:51", "scoring module imported")
-    # #endregion
-    
-    # #region agent log
-    _log("H1", "app.py:53", "About to import admin_data_dual_models")
-    # #endregion
-    import admin_data_dual_models as admin_mock_data
-    # #region agent log
-    _log("H1", "app.py:56", "admin_data_dual_models imported")
-    # #endregion
-    
-    # #region agent log
-    _log("H1", "app.py:58", "About to import services.scoring_api")
-    # #endregion
-    from services import scoring_api
-    # #region agent log
-    _log("H1", "app.py:61", "services.scoring_api imported")
-    # #endregion
-    
-    # #region agent log
-    _log("H6", "app.py:64", "Creating FastAPI app instance")
-    # #endregion
-    app = FastAPI(title="frankscore_demo")
-    
-    # #region agent log
-    _log("H6", "app.py:94", "Initializing Jinja2Templates", {"templates_dir": "templates", "exists": os.path.exists("templates")})
-    # #endregion
-    # Only initialize templates if directory exists (graceful degradation)
-    if os.path.exists("templates"):
-        templates = Jinja2Templates(directory="templates")
-    else:
-        _log("H6", "app.py:98", "WARNING: templates directory not found, templates will not work")
-        templates = None  # Will need to handle this in routes
-    # #region agent log
-    _log("H6", "app.py:101", "Jinja2Templates initialized")
-    # #endregion
-    
-    # #region agent log
-    _log("H7", "app.py:104", "Mounting StaticFiles", {"static_dir": "static", "exists": os.path.exists("static")})
-    # #endregion
-    # Only mount static files if directory exists (graceful degradation)
-    if os.path.exists("static"):
-        app.mount("/static", StaticFiles(directory="static"), name="static")
-        # #region agent log
-        _log("H7", "app.py:109", "StaticFiles mounted successfully")
-        # #endregion
-    else:
-        _log("H7", "app.py:112", "WARNING: static directory not found, static files will not work")
-    
-    # #region agent log
-    _log("H1", "app.py:78", "App module initialization complete")
-    # #endregion
+import db
+import scoring
+import admin_data_dual_models as admin_mock_data
+from services import scoring_api
 
-except Exception as e:
-    # #region agent log
-    _log("H1", "app.py:81", "CRITICAL: App module import/initialization failed", error=e)
-    # #endregion
-    # Create minimal app to prevent complete failure
-    app = FastAPI(title="frankscore_demo_error")
-    raise
+
+app = FastAPI(title="frankscore_demo")
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # Question bank data (loaded at startup)
@@ -141,10 +35,6 @@ def load_question_banks() -> None:
     
     public_path = "questiondb/psychometric_question_bank_v2_public.json"
     admin_path = "questiondb/psychometric_question_bank_v2_admin.json"
-    
-    # #region agent log
-    _log("H2", "app.py:110", "load_question_banks called", {"cwd": os.getcwd(), "public_path": public_path, "public_exists": os.path.exists(public_path), "admin_path": admin_path, "admin_exists": os.path.exists(admin_path), "questiondb_exists": os.path.exists("questiondb")})
-    # #endregion
     
     # Load public JSON (for /api/questions)
     if os.path.exists(public_path):
@@ -189,52 +79,13 @@ def load_question_banks() -> None:
                 ADMIN_SCORING_MAP[item_id] = score_map
 
 
-# Initialize lazily on first request instead of startup event
-# Startup events don't work reliably in serverless environments
-_initialized = False
-
-def _ensure_initialized():
-    """Lazy initialization - called on first request"""
-    global _initialized
-    if _initialized:
-        return
-    # #region agent log
-    _log("H4", "app.py:90", "Lazy initialization triggered")
-    # #endregion
-    try:
-        # #region agent log
-        _log("H4", "app.py:94", "Calling db.init_db()")
-        # #endregion
-        db.init_db()
-        # #region agent log
-        _log("H4", "app.py:97", "db.init_db() completed")
-        # #endregion
-        
-        # #region agent log
-        _log("H4", "app.py:100", "Calling load_question_banks()")
-        # #endregion
-        load_question_banks()
-        # #region agent log
-        _log("H4", "app.py:103", "load_question_banks() completed", {"questions_count": len(PUBLIC_QUESTIONS), "traits_count": len(TRAIT_NAMES)})
-        # #endregion
-        
-        _initialized = True
-        # #region agent log
-        _log("H4", "app.py:108", "Lazy initialization completed successfully")
-        # #endregion
-    except Exception as e:
-        # #region agent log
-        _log("H4", "app.py:111", "Initialization error (non-fatal)", error=e)
-        # #endregion
-        # Log error but don't crash - allow app to continue
-        import logging
-        logging.error(f"Initialization error (non-fatal): {e}")
-
-# Keep startup event for compatibility but make it no-op
 @app.on_event("startup")
 def _startup() -> None:
-    # No-op in serverless - use lazy initialization instead
-    pass
+    db.init_db()
+    load_question_banks()
+    # Models loaded lazily on first use to speed up cold starts
+    # scoring.load_xgb_model()  # Load XGBoost model at startup
+    # scoring.load_rf_model()  # Load Random Forest model at startup
 
 
 def now_ms() -> int:
@@ -300,18 +151,11 @@ class LoginRequest(BaseModel):
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
-    # #region agent log
-    _log("H8", "app.py:292", "Health endpoint called")
-    # #endregion
-    _ensure_initialized()  # Lazy initialization
     try:
         with db.get_conn() as conn:
             conn.execute("SELECT 1").fetchone()
         return {"ok": True, "db": "ok"}
     except Exception as e:
-        # #region agent log
-        _log("H8", "app.py:300", "Health check failed", error=e)
-        # #endregion
         return {"ok": False, "db": "error", "error": str(e)}
 
 
@@ -392,23 +236,123 @@ def api_signup(req: SignupRequest) -> Any:
     return {"ok": True, "user_id": user_id, "message": "Account created successfully"}
 
 
+def _seed_default_users():
+    """Seed default users if database is empty (for Vercel ephemeral databases)."""
+    import hashlib
+    # #region agent log
+    _log("H9", "app.py:242", "Checking if users need to be seeded")
+    # #endregion
+    try:
+        # Check if any users exist
+        with db.get_conn() as conn:
+            user_count = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()["count"]
+            # #region agent log
+            _log("H9", "app.py:248", f"User count in database: {user_count}")
+            # #endregion
+            
+            if user_count == 0:
+                # #region agent log
+                _log("H9", "app.py:251", "No users found - seeding default users")
+                # #endregion
+                # Create default users
+                import hashlib
+                default_users = [
+                    ("alice", "password123", "alice@example.com"),
+                    ("bob", "password123", "bob@example.com"),
+                ]
+                for username, password, email in default_users:
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    db.create_user(username, password_hash, email)
+                    # #region agent log
+                    _log("H9", "app.py:260", f"Created default user: {username}")
+                    # #endregion
+                # #region agent log
+                _log("H9", "app.py:263", "Default users seeded successfully")
+                # #endregion
+    except Exception as e:
+        # #region agent log
+        _log("H9", "app.py:266", "Error seeding users (non-fatal)", error=e)
+        # #endregion
+        pass  # Non-fatal - allow app to continue
+
+def _seed_default_users():
+    """Seed default users if database is empty (for Vercel ephemeral databases)."""
+    # #region agent log
+    _log("H9", "app.py:242", "Checking if users need to be seeded")
+    # #endregion
+    try:
+        # Check if any users exist
+        with db.get_conn() as conn:
+            user_count = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()["count"]
+            # #region agent log
+            _log("H9", "app.py:248", f"User count in database: {user_count}")
+            # #endregion
+            
+            if user_count == 0:
+                # #region agent log
+                _log("H9", "app.py:251", "No users found - seeding default users")
+                # #endregion
+                # Create default users
+                import hashlib
+                default_users = [
+                    ("alice", "password123", "alice@example.com"),
+                    ("bob", "password123", "bob@example.com"),
+                ]
+                for username, password, email in default_users:
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    db.create_user(username, password_hash, email)
+                    # #region agent log
+                    _log("H9", "app.py:260", f"Created default user: {username}")
+                    # #endregion
+                # #region agent log
+                _log("H9", "app.py:263", "Default users seeded successfully")
+                # #endregion
+    except Exception as e:
+        # #region agent log
+        _log("H9", "app.py:266", "Error seeding users (non-fatal)", error=e)
+        # #endregion
+        pass  # Non-fatal - allow app to continue
+
 @app.post("/api/login")
 def api_login(req: LoginRequest) -> Any:
     """Login and return user_id."""
     import hashlib
     
+    # #region agent log
+    _log("H9", "app.py:273", "Login attempt", {"username": req.username})
+    # #endregion
+    
+    # Ensure database is initialized and seeded
+    db.init_db()  # Ensure DB is initialized
+    _seed_default_users()  # Seed users if empty
+    
     # Get user
     user = db.get_user_by_username(req.username)
+    # #region agent log
+    _log("H9", "app.py:281", f"User lookup result: {user is not None}")
+    # #endregion
     if not user:
+        # #region agent log
+        _log("H9", "app.py:284", "Login failed: user not found")
+        # #endregion
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     # Verify password
     password_hash = hashlib.sha256(req.password.encode()).hexdigest()
+    # #region agent log
+    _log("H9", "app.py:290", "Password verification", {"password_match": user["password_hash"] == password_hash})
+    # #endregion
     if user["password_hash"] != password_hash:
+        # #region agent log
+        _log("H9", "app.py:293", "Login failed: password mismatch")
+        # #endregion
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     # Update last login
     db.update_last_login(user["id"])
+    # #region agent log
+    _log("H9", "app.py:299", "Login successful", {"user_id": user["id"], "username": user["username"]})
+    # #endregion
     
     return {"ok": True, "user_id": user["id"], "username": user["username"]}
 
